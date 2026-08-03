@@ -1,0 +1,238 @@
+/* Suivi de progression — feuille de style unique, pensée mobile d'abord. */
+
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --ink: #1f2933;
+  --muted: #6b7785;
+  --line: #dfe3e8;
+  --accent: #2f6f8f;
+  --accent-soft: #e3eef4;
+  --ok: #3f8f5f;
+  --warn: #b4762a;
+  --bar: #e7eaee;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 1rem 3rem;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.screen { max-width: 40rem; margin: 0 auto; }
+
+h1 { font-size: 1.5rem; margin: 1.5rem 0 .25rem; }
+h2 { font-size: 1rem; margin: 0 0 .75rem; letter-spacing: .01em; }
+
+.intro { color: var(--muted); margin-top: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.error { color: #b3261e; }
+
+/* ------------------------------------------------------------- connexion */
+
+form { display: grid; gap: .875rem; margin-top: 1.5rem; }
+
+label {
+  display: grid;
+  gap: .25rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+input, select {
+  font: inherit;
+  padding: .625rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+input:focus, select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+button {
+  font: inherit;
+  padding: .75rem 1rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled { opacity: .6; cursor: default; }
+
+button.link {
+  background: none;
+  color: var(--muted);
+  padding: .25rem;
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------- tableau */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 .5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  padding-bottom: .5rem;
+}
+
+.tabs button {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  padding: .5rem .875rem;
+}
+
+.tabs button[aria-current="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.banner {
+  margin: .5rem 0 1rem;
+  padding: .625rem .875rem;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  font-size: .9rem;
+}
+
+.banner.frozen { background: #f2ece1; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------------------- objectif */
+
+.levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+
+.levels button {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: .625rem .25rem;
+  font-size: .8rem;
+  line-height: 1.2;
+}
+
+.levels button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.levels button .reached { display: block; font-size: .7rem; opacity: .8; }
+
+/* ---------------------------------------------------------------- jauges */
+
+.gauge { margin-bottom: .875rem; }
+
+.gauge-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: .25rem;
+  font-size: .9rem;
+}
+
+.gauge-value { font-variant-numeric: tabular-nums; }
+
+.gauge-track {
+  height: .5rem;
+  background: var(--bar);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+.gauge.done .gauge-fill { background: var(--ok); }
+
+/* ------------------------------------------------------------------ écart */
+
+#gap-list { margin: 0 0 .75rem; padding-left: 1.25rem; }
+#gap-list li { margin-bottom: .25rem; }
+
+.advice {
+  margin: 0;
+  padding: .875rem;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  font-size: .95rem;
+}
+
+.reached-note {
+  color: var(--ok);
+  font-weight: 600;
+  margin: 0 0 .5rem;
+}
+
+/* -------------------------------------------------------------------- BEX */
+
+.bex { display: grid; gap: .5rem; }
+
+.bex-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .75rem;
+  align-items: center;
+  font-size: .9rem;
+}
+
+.bex-row.never { color: var(--muted); }
+.bex-row.socle strong::after { content: " ·  socle"; color: var(--warn); font-weight: 400; font-size: .8em; }
+
+.dots { font-variant-numeric: tabular-nums; letter-spacing: .1em; color: var(--ok); }
+.dots.empty { color: var(--line); }
+
+/* -------------------------------------------------------------- historique */
+
+.history-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: .75rem;
+  font-size: .85rem;
+  padding: .25rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.history-row:first-child { border-top: 0; }
+
+/* ------------------------------------------------------------- responsive */
+
+@media (min-width: 32rem) {
+  .levels { grid-template-columns: repeat(4, 1fr); }
+  .levels button { font-size: .875rem; }
+}

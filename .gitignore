@@ -1,0 +1,17 @@
+# Dépendances
+node_modules/
+
+# Secrets locaux : mot de passe de l'administration.
+# Ne JAMAIS publier ce fichier, le dépôt est public.
+js/config.local.js
+
+# Classeurs de cotes : ils contiennent les noms et les résultats des élèves.
+*.ods
+*.xlsx
+*.xls
+.~lock.*
+
+# Divers
+.DS_Store
+Thumbs.db
+*.log

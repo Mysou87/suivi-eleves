@@ -1,0 +1,24 @@
+{
+  "name": "app-suivi-eleves",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Suivi de progression des élèves (BEX, quiz, devoirs libres) — app élève + admin",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "import": "node tools/import.mjs",
+    "status": "node tools/status.mjs",
+    "test:data": "node tools/test-data.mjs",
+    "test:parser": "node tools/test-parser.mjs",
+    "test:rules": "node tools/test-rules.mjs",
+    "test:2025": "node tools/check-2025.mjs",
+    "test:history": "node tools/test-history.mjs",
+    "test": "node tools/test-parser.mjs && node tools/test-rules.mjs && node tools/test-history.mjs && node tools/check-2025.mjs"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.0"
+  }
+}

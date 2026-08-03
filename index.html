@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ma progression</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ------------------------------------------------------------ connexion -->
+<main id="login" class="screen">
+  <h1>Ma progression</h1>
+  <p class="intro">Entre ton prénom, ton nom et ta classe pour voir où tu en es.</p>
+
+  <form id="login-form" autocomplete="off">
+    <label>
+      Prénom
+      <input type="text" id="first-name" required autocapitalize="words">
+    </label>
+    <label>
+      Nom
+      <input type="text" id="last-name" required autocapitalize="words">
+    </label>
+    <label>
+      Classe
+      <select id="class-name" required>
+        <option value="">…</option>
+      </select>
+    </label>
+    <button type="submit" id="login-button">Voir ma progression</button>
+    <p id="login-error" class="error" hidden></p>
+  </form>
+</main>
+
+<!-- ------------------------------------------------------------- tableau -->
+<main id="app" class="screen" hidden>
+  <header class="topbar">
+    <div>
+      <strong id="student-name"></strong>
+      <span id="student-class" class="muted"></span>
+    </div>
+    <button type="button" id="logout" class="link">Quitter</button>
+  </header>
+
+  <nav id="course-tabs" class="tabs" hidden></nav>
+
+  <p id="period-banner" class="banner"></p>
+
+  <section class="card">
+    <h2>Mon objectif</h2>
+    <div id="target-picker" class="levels"></div>
+    <p id="target-hint" class="muted"></p>
+  </section>
+
+  <section class="card">
+    <h2>Où j'en suis</h2>
+    <div id="gauges"></div>
+  </section>
+
+  <section class="card" id="gap-card">
+    <h2 id="gap-title"></h2>
+    <ul id="gap-list"></ul>
+    <p id="advice" class="advice"></p>
+  </section>
+
+  <section class="card">
+    <h2>Mes savoir-faire</h2>
+    <div id="bex-list" class="bex"></div>
+    <p class="muted small">
+      Chaque point est une réussite. Un tiret veut dire que tu n'as pas encore validé cette BEX.
+    </p>
+  </section>
+
+  <section class="card" id="history-card" hidden>
+    <h2>Ma progression dans le temps</h2>
+    <div id="history"></div>
+  </section>
+
+  <section class="card" id="snapshots-card" hidden>
+    <h2>Mes bulletins</h2>
+    <div id="snapshots"></div>
+  </section>
+
+  <p id="updated" class="muted small"></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

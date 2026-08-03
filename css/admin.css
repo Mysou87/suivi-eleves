@@ -1,0 +1,100 @@
+/* Complément de style pour le panneau d'administration. */
+
+.screen.wide { max-width: 64rem; }
+
+.panel { margin-bottom: 1rem; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.filters label { margin: 0; }
+.filters .check { flex-direction: row; align-items: center; gap: .5rem; }
+
+.actions {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+
+th, td {
+  text-align: left;
+  padding: .4rem .5rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+tr.behind td { background: #fdf5f2; }
+tr.top td { background: #f4faf5; }
+
+.table-scroll { overflow-x: auto; }
+
+.pill {
+  display: inline-block;
+  padding: .1rem .45rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  border: 1px solid var(--line);
+}
+
+.pill.I { background: #fbeae5; border-color: #f0c8bb; }
+.pill.JS { background: #fdf1dc; border-color: #ecd7a8; }
+.pill.S { background: #eef3f7; border-color: #cddbe6; }
+.pill.B { background: #e8f2ea; border-color: #c2ddc9; }
+.pill.TB { background: #dcecdf; border-color: #a9cdb3; }
+
+.flag { color: var(--warn); font-size: .8rem; }
+
+.advice-row { margin-bottom: 1.25rem; }
+.advice-row code { font-size: .8rem; color: var(--muted); }
+
+textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 5.5rem;
+  padding: .5rem .625rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.saved { color: var(--ok); font-size: .85rem; margin-left: .5rem; }
+
+.freeze-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.freeze-row:first-child { border-top: 0; }
+.freeze-row .grow { flex: 1 1 16rem; }
+
+.report { font-size: .9rem; }
+.report dt { color: var(--muted); font-size: .8rem; }
+.report dd { margin: 0 0 .5rem; font-variant-numeric: tabular-nums; }
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: .5rem 1rem;
+  margin: .75rem 0;
+}
+
+.warn-list { font-size: .85rem; color: var(--warn); max-height: 12rem; overflow-y: auto; }
+.warn-list li { margin-bottom: .2rem; }

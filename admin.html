@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suivi — administration</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<main id="gate" class="screen">
+  <h1>Administration</h1>
+  <form id="gate-form" autocomplete="off">
+    <label>
+      Mot de passe
+      <input type="password" id="password" required>
+    </label>
+    <button type="submit">Entrer</button>
+    <p id="gate-error" class="error" hidden>Mot de passe incorrect.</p>
+  </form>
+</main>
+
+<main id="admin" class="screen wide" hidden>
+  <header class="topbar">
+    <h1>Suivi des élèves</h1>
+    <span id="period-info" class="muted"></span>
+  </header>
+
+  <nav class="tabs" id="admin-tabs">
+    <button type="button" data-panel="import" aria-current="true">Importer</button>
+    <button type="button" data-panel="overview">Tableau de bord</button>
+    <button type="button" data-panel="advice">Conseils</button>
+    <button type="button" data-panel="freeze">Bulletins</button>
+  </nav>
+
+  <!-- ------------------------------------------------------------- import -->
+  <section class="card panel" data-panel="import">
+    <h2>Importer le classeur de cotes</h2>
+    <p class="muted">
+      Choisis ton fichier <code>Feuilles de cotes.ods</code>. Rien n'est envoyé avant que tu
+      confirmes, et un import qui ne change rien n'ajoute aucune étape à la progression des élèves.
+    </p>
+
+    <label>
+      Fichier
+      <input type="file" id="file" accept=".ods,.xlsx,.xls">
+    </label>
+
+    <div id="preview" hidden>
+      <h3>Ce que je lis dans le fichier</h3>
+      <div id="preview-body"></div>
+      <div class="actions">
+        <button type="button" id="do-import">Envoyer vers l'application</button>
+        <button type="button" id="cancel-import" class="link">Annuler</button>
+      </div>
+    </div>
+
+    <div id="import-result" hidden></div>
+  </section>
+
+  <!-- ----------------------------------------------------------- overview -->
+  <section class="card panel" data-panel="overview" hidden>
+    <h2>Tableau de bord</h2>
+    <div class="filters">
+      <label>
+        Cours
+        <select id="course-filter"></select>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="only-behind">
+        Seulement les élèves en difficulté
+      </label>
+    </div>
+    <div id="overview"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ advice -->
+  <section class="card panel" data-panel="advice" hidden>
+    <h2>Textes de conseil</h2>
+    <p class="muted">
+      Ce que lit l'élève quand il lui manque quelque chose. <code>{X}</code> est remplacé par le
+      nombre manquant, <code>{next}</code> par le niveau suivant, <code>{ecart}</code> par la liste
+      de ce qui manque.
+    </p>
+    <div id="advice-list"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ freeze -->
+  <section class="card panel" data-panel="freeze" hidden>
+    <h2>Figer les bulletins</h2>
+    <p class="muted">
+      Un bulletin figé ne bouge plus. Les devoirs libres et les quiz sont arrêtés à la date du
+      dernier cours de la période, pas à celle du conseil.
+    </p>
+    <div id="freeze-list"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
