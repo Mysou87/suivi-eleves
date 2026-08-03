@@ -5,12 +5,12 @@
 // panneau d'administration.
 
 import { norm, studentKey } from './parser.js';
-import { COURSE_MAP, guessCourseLabel } from './config.js';
+import { guessCourseLabel, normalizeSheetName } from './config.js';
 import { currentPeriod, countersAt, evaluate, socleForPeriod } from './rules.js';
 
 /** libellés canoniques d'un onglet : celui des seuils fait référence */
 export function labelsFor(sheetName) {
-  return COURSE_MAP[sheetName] || guessCourseLabel(sheetName);
+  return guessCourseLabel(sheetName);
 }
 
 /** « 5e Chimie A » → « 5e » (format de year_level dans la table students) */
@@ -48,7 +48,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
 
   // ------------------------------------------------------------- 2. cours
   const courseRows = parsed.groups.map((g) => ({
-    sheet_name: g.sheetName,
+    sheet_name: normalizeSheetName(g.sheetName),
     course_label: labelsFor(g.sheetName).thresholds,
     year_level: g.year,
     group_letter: g.group,
@@ -60,14 +60,16 @@ export async function syncWorkbook(db, parsed, options = {}) {
   fail('suivi_courses', courseError);
 
   const { data: courses } = await db.from('suivi_courses').select('id, sheet_name, course_label');
-  const courseIdBySheet = new Map((courses || []).map((c) => [c.sheet_name, c.id]));
+  const courseIdBySheet = new Map(
+    (courses || []).map((c) => [normalizeSheetName(c.sheet_name), c.id])
+  );
   report.steps.courses = courseRows.length;
 
   // Correspondance des libellés, pour que l'admin puisse la relire et l'ajuster.
   const aliasRows = [];
   parsed.groups.forEach((g) => {
     const l = labelsFor(g.sheetName);
-    aliasRows.push({ course_label: l.thresholds, alias: g.sheetName });
+    aliasRows.push({ course_label: l.thresholds, alias: normalizeSheetName(g.sheetName) });
     if (l.list !== l.thresholds) aliasRows.push({ course_label: l.thresholds, alias: l.list });
   });
   await db.from('suivi_course_aliases').upsert(aliasRows, { onConflict: 'course_label,alias' });
@@ -226,7 +228,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
   let unchanged = 0;
 
   parsed.groups.forEach((g) => {
-    const courseId = courseIdBySheet.get(g.sheetName);
+    const courseId = courseIdBySheet.get(normalizeSheetName(g.sheetName));
     const canonical = labelsFor(g.sheetName).thresholds;
     const course = thresholdByLabel.get(norm(canonical));
 

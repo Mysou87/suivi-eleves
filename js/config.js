@@ -23,6 +23,15 @@ export async function loadLocalSecrets() {
 export const SCHOOL_YEAR_START = 2026;
 
 /**
+ * Emplacement du classeur de référence. Dossier OneDrive synchronisé : il est
+ * donc accessible comme un fichier local, ce qui permet un import automatique
+ * quotidien, tout en restant éditable depuis n'importe quel poste.
+ * Utilisé par les outils en ligne de commande, pas par la page web.
+ */
+export const WORKBOOK_PATH =
+  'C:\\Users\\lvano\\OneDrive - ecoleactive.be\\Feuilles de cotes 2026-2027.xlsx';
+
+/**
  * Correspondance entre les onglets de résultats et les libellés utilisés dans
  * les feuilles « Seuils de réussite » et « Liste », qui ne sont pas identiques.
  * Modifiable depuis l'admin (table `suivi_course_aliases`) ; ceci n'est que la
@@ -42,18 +51,41 @@ export const COURSE_MAP = {
 };
 
 /**
+ * Excel remplace les espaces des noms d'onglets par des underscores lorsque le
+ * classeur passe en ligne (« 5e_Chimie_A »). On ramène tout à la forme avec
+ * espaces, y compris pour ce qui est enregistré en base, afin qu'un même cours
+ * ne soit pas dédoublé selon le format du fichier importé.
+ */
+export function normalizeSheetName(sheetName) {
+  return String(sheetName ?? '')
+    .replace(/_+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Faute de correspondance connue, on retire la lettre de groupe finale et on
  * normalise « 4A Sciences » en « 4e Sciences ». Permet d'ajouter un onglet
  * sans rien configurer.
  */
 export function guessCourseLabel(sheetName) {
-  const known = COURSE_MAP[sheetName];
+  const clean = normalizeSheetName(sheetName);
+  const known = COURSE_MAP[clean] || COURSE_MAP[sheetName];
   if (known) return known;
-  const base = String(sheetName)
-    .replace(/\s+[A-D]$/i, '')
-    .replace(/^(\d)[A-D]\s+/i, '$1e ');
+  const base = clean.replace(/\s+[A-D]$/i, '').replace(/^(\d)[A-D]\s+/i, '$1e ');
   return { thresholds: base, list: base };
 }
+
+/**
+ * Onglets présents dans le classeur mais que l'application ignore.
+ * Les underscores et la casse n'ont pas d'importance.
+ *
+ * « 4A Maths » : cours d'un autre professeur, pas encore configuré (ni bloc
+ * dans la feuille Liste, ni grille de seuils). À retirer d'ici dès que ces deux
+ * blocs existeront — l'objectif est bien que l'élève retrouve tous ses cours au
+ * même endroit.
+ */
+export const IGNORED_SHEETS = ['4A Maths'];
 
 // Les libellés des rôles de mission et des types de dépassement des onglets de
 // résultats sont ceux de l'an dernier et ne correspondent plus à la feuille

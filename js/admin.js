@@ -1,7 +1,13 @@
 // Panneau d'administration : import du classeur, tableau de bord, textes de
 // conseil, figeage des bulletins.
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY, SCHOOL_YEAR_START, loadLocalSecrets } from './config.js';
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  SCHOOL_YEAR_START,
+  IGNORED_SHEETS,
+  loadLocalSecrets,
+} from './config.js';
 import { parseWorkbook } from './parser.js';
 import { syncWorkbook } from './sync.js';
 import { loadAdminOverview, loadAdvice } from './data.js';
@@ -91,7 +97,10 @@ $('file').addEventListener('change', async (event) => {
     }),
   }));
 
-  state.parsed = parseWorkbook(sheets, { startYear: SCHOOL_YEAR_START });
+  state.parsed = parseWorkbook(sheets, {
+    startYear: SCHOOL_YEAR_START,
+    ignore: IGNORED_SHEETS,
+  });
   state.fileName = file.name;
   renderPreview();
 });

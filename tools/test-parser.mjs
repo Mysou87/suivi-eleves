@@ -3,12 +3,10 @@
 
 import XLSX from 'xlsx';
 import { parseWorkbook, parseCourseSheet, parseLevelValue } from '../js/parser.js';
+import { WORKBOOK_PATH, SCHOOL_YEAR_START } from '../js/config.js';
 
-const DEFAULT_FILE =
-  'c:\\Users\\lvano\\Desktop\\Espace de travail\\Feuilles de cotes 2026-2027.ods';
-
-const file = process.argv[2] || DEFAULT_FILE;
-const START_YEAR = 2026;
+const file = process.argv[2] || WORKBOOK_PATH;
+const START_YEAR = SCHOOL_YEAR_START;
 
 const wb = XLSX.readFile(file, { cellDates: false });
 

@@ -4,6 +4,7 @@
 
 import XLSX from 'xlsx';
 import { parseThresholdsSheet, norm } from '../js/parser.js';
+import { WORKBOOK_PATH } from '../js/config.js';
 import {
   countersAt,
   currentPeriod,
@@ -17,9 +18,7 @@ import {
   socleForPeriod,
 } from '../js/rules.js';
 
-const FILE =
-  process.argv[2] ||
-  'c:\\Users\\lvano\\Desktop\\Espace de travail\\Feuilles de cotes 2026-2027.ods';
+const FILE = process.argv[2] || WORKBOOK_PATH;
 
 const wb = XLSX.readFile(FILE, { cellDates: false });
 const sheet = wb.SheetNames.find((n) => norm(n).startsWith('seuils'));

@@ -467,7 +467,12 @@ export function isCourseSheet(rows) {
  *   « 6e Chimie »   → { year: 6, group: null }
  */
 export function sheetIdentity(sheetName) {
-  const s = String(sheetName ?? '').trim();
+  // Les onglets d'un classeur passé par Excel en ligne portent des underscores
+  // à la place des espaces : « 4A_Sciences ».
+  const s = String(sheetName ?? '')
+    .replace(/_+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const year = (s.match(/(\d)/) || [])[1];
   let group = (s.match(/^\d\s*([A-D])\b/i) || [])[1];
   if (!group) group = (s.match(/\b([A-D])\s*$/i) || [])[1];
@@ -687,7 +692,11 @@ export function parseWorkbook(sheets, options = {}) {
   const warnings = [];
   const bySheetName = new Map(sheets.map((s) => [norm(s.name), s]));
 
-  const findSheet = (predicate) => sheets.find((s) => predicate(norm(s.name)));
+  // Comparaison tolérante aux underscores d'Excel en ligne.
+  const sheetKey = (name) => norm(String(name ?? '').replace(/_+/g, ' '));
+  const ignored = new Set((options.ignore || []).map(sheetKey));
+
+  const findSheet = (predicate) => sheets.find((s) => predicate(sheetKey(s.name)));
 
   const listSheet = findSheet((n) => n === 'liste' || n.startsWith('liste'));
   const thresholdSheet = findSheet((n) => n.startsWith('seuils'));
@@ -699,13 +708,20 @@ export function parseWorkbook(sheets, options = {}) {
   if (!thresholdSheet) warnings.push('feuille « Seuils de réussite » introuvable');
 
   const groups = [];
+  const skipped = [];
   sheets.forEach((s) => {
     if (s === listSheet || s === thresholdSheet) return;
+    if (ignored.has(sheetKey(s.name))) {
+      skipped.push(s.name);
+      return;
+    }
     if (!isCourseSheet(s.rows)) return;
     const parsed = parseCourseSheet(s.name, s.rows, options);
     warnings.push(...parsed.warnings);
     groups.push(parsed);
   });
 
-  return { nomenclature, thresholds, groups, warnings, bySheetName };
+  if (skipped.length) warnings.push(`onglet(s) ignoré(s) volontairement : ${skipped.join(', ')}`);
+
+  return { nomenclature, thresholds, groups, skipped, warnings, bySheetName };
 }

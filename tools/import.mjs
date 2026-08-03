@@ -7,13 +7,17 @@ import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 import { parseWorkbook } from '../js/parser.js';
 import { syncWorkbook } from '../js/sync.js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY, SCHOOL_YEAR_START } from '../js/config.js';
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  SCHOOL_YEAR_START,
+  WORKBOOK_PATH,
+  IGNORED_SHEETS,
+} from '../js/config.js';
 
 const args = process.argv.slice(2);
 const dry = args.includes('--dry');
-const file =
-  args.find((a) => !a.startsWith('--')) ||
-  'c:\\Users\\lvano\\Desktop\\Espace de travail\\Feuilles de cotes 2026-2027.ods';
+const file = args.find((a) => !a.startsWith('--')) || WORKBOOK_PATH;
 
 console.log(`Lecture de ${file}`);
 const wb = XLSX.readFile(file, { cellDates: false });
@@ -27,7 +31,10 @@ const sheets = wb.SheetNames.map((name) => ({
   }),
 }));
 
-const parsed = parseWorkbook(sheets, { startYear: SCHOOL_YEAR_START });
+const parsed = parseWorkbook(sheets, {
+  startYear: SCHOOL_YEAR_START,
+  ignore: IGNORED_SHEETS,
+});
 
 const students = parsed.groups.reduce((n, g) => n + g.students.length, 0);
 console.log(
