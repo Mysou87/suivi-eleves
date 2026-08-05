@@ -74,6 +74,22 @@ textarea {
 
 .saved { color: var(--ok); font-size: .85rem; margin-left: .5rem; }
 
+/* Mise à jour en un clic, et repli « importer un autre fichier ». */
+#auto-file { margin-top: 0; }
+#auto-file code { font-size: .85rem; }
+
+#manual-import {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: .75rem;
+}
+
+#manual-import summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
 .freeze-row {
   display: flex;
   flex-wrap: wrap;

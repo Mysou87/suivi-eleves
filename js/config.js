@@ -6,10 +6,19 @@ export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1aGFyamFmcmh3emhoZ2d3emd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MjMzMTgsImV4cCI6MjA5NjM5OTMxOH0.ieZT0hpGMcPQsJm6IjufzsZelZW3i25VSKhe_F8tqHk';
 
 /**
- * Le mot de passe de l'administration n'est PAS dans ce fichier : le dépôt est
- * public, il serait lisible par n'importe qui. Il vit dans `js/config.local.js`,
- * qui n'est jamais publié. Sans ce fichier, l'admin refuse l'accès — c'est
- * voulu : l'administration ne sert que depuis l'ordinateur de la professeure.
+ * La clé ci-dessus ne sait plus que LIRE (voir sql/policies.sql), sauf pour
+ * l'objectif que l'élève choisit lui-même. C'est volontaire : elle est publiée
+ * dans un dépôt public, il faut donc supposer que tout le monde l'a.
+ *
+ * Ce qui écrit les résultats — l'import, les textes de conseil, les bulletins
+ * figés — a besoin de la clé `service_role`, qui n'est PAS dans ce fichier :
+ *
+ *   `js/config.local.js`, jamais publié (voir .gitignore), exporte
+ *   `ADMIN_PASSWORD` et `SUPABASE_SERVICE_KEY`.
+ *
+ * Sans ce fichier, l'administration refuse l'accès et l'import s'arrête avec un
+ * message clair. C'est voulu : on n'administre que depuis l'ordinateur de la
+ * professeure.
  */
 export async function loadLocalSecrets() {
   try {
@@ -19,17 +28,47 @@ export async function loadLocalSecrets() {
   }
 }
 
+/** Message unique, pour ne pas l'écrire différemment à trois endroits. */
+export const MISSING_SERVICE_KEY =
+  "Clé d'écriture absente. Dans Supabase : Project Settings → API → " +
+  "« service_role », puis colle-la dans js/config.local.js sous le nom " +
+  'SUPABASE_SERVICE_KEY.';
+
 // Année civile de la rentrée : sert à dater les en-têtes « 7/9 », « 14/9 »…
 export const SCHOOL_YEAR_START = 2026;
 
 /**
- * Emplacement du classeur de référence. Dossier OneDrive synchronisé : il est
- * donc accessible comme un fichier local, ce qui permet un import automatique
- * quotidien, tout en restant éditable depuis n'importe quel poste.
+ * Emplacement du classeur de référence sur l'ordinateur principal : un dossier
+ * OneDrive synchronisé, donc lisible comme un fichier local.
+ *
+ * Ce chemin n'existe pas forcément sur un AUTRE ordinateur. Deux façons de s'y
+ * adapter, dans cet ordre de priorité :
+ *   1. exporter `WORKBOOK_PATH` depuis `js/config.local.js` (propre à la
+ *      machine, jamais publié) — c'est la voie la plus sûre ;
+ *   2. sinon, le classeur est cherché tout seul dans les dossiers ci-dessous.
  * Utilisé par les outils en ligne de commande, pas par la page web.
  */
 export const WORKBOOK_PATH =
   'C:\\Users\\lvano\\OneDrive - ecoleactive.be\\Feuilles de cotes 2026-2027.xlsx';
+
+/**
+ * Où chercher le classeur quand le chemin ci-dessus n'existe pas : dossiers
+ * relatifs au profil de l'utilisateur Windows, essayés dans cet ordre. Sur un
+ * poste sans OneDrive, un fichier téléchargé depuis Excel en ligne atterrit
+ * dans « Téléchargements » — c'est pour ça qu'il y figure.
+ */
+export const WORKBOOK_SEARCH_FOLDERS = [
+  'OneDrive - ecoleactive.be',
+  'OneDrive',
+  'Downloads',
+  'Téléchargements',
+  'Desktop',
+  'Bureau',
+  'Documents',
+];
+
+/** Nom attendu du classeur, sans l'année ni l'extension. */
+export const WORKBOOK_NAME_PATTERN = /^feuilles de cotes.*\.(xlsx|xls|ods)$/i;
 
 /**
  * Correspondance entre les onglets de résultats et les libellés utilisés dans

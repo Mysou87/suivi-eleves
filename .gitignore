@@ -1,7 +1,8 @@
 # Dépendances
 node_modules/
 
-# Secrets locaux : mot de passe de l'administration.
+# Secrets locaux : mot de passe de l'administration ET clé d'écriture de la base
+# (service_role), qui contourne toutes les protections.
 # Ne JAMAIS publier ce fichier, le dépôt est public.
 js/config.local.js
 

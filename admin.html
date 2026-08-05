@@ -27,6 +27,8 @@
     <span id="period-info" class="muted"></span>
   </header>
 
+  <p id="no-write-key" class="error small" hidden></p>
+
   <nav class="tabs" id="admin-tabs">
     <button type="button" data-panel="import" aria-current="true">Importer</button>
     <button type="button" data-panel="overview">Tableau de bord</button>
@@ -36,27 +38,40 @@
 
   <!-- ------------------------------------------------------------- import -->
   <section class="card panel" data-panel="import">
-    <h2>Importer le classeur de cotes</h2>
-    <p class="muted">
-      Choisis ton fichier <code>Feuilles de cotes.ods</code>. Rien n'est envoyé avant que tu
-      confirmes, et un import qui ne change rien n'ajoute aucune étape à la progression des élèves.
-    </p>
+    <h2>Mettre à jour les résultats</h2>
 
-    <label>
-      Fichier
-      <input type="file" id="file" accept=".ods,.xlsx,.xls">
-    </label>
-
-    <div id="preview" hidden>
-      <h3>Ce que je lis dans le fichier</h3>
-      <div id="preview-body"></div>
+    <div id="auto-import" hidden>
+      <p id="auto-file" class="muted"></p>
       <div class="actions">
-        <button type="button" id="do-import">Envoyer vers l'application</button>
-        <button type="button" id="cancel-import" class="link">Annuler</button>
+        <button type="button" id="do-auto-import">Mettre à jour maintenant</button>
+        <span id="auto-status" class="saved"></span>
       </div>
+      <div id="auto-result" hidden></div>
     </div>
 
-    <div id="import-result" hidden></div>
+    <details id="manual-import">
+      <summary>Importer un autre fichier</summary>
+      <p class="muted small">
+        Rien n'est envoyé avant que tu confirmes, et un import qui ne change rien n'ajoute aucune
+        étape à la progression des élèves.
+      </p>
+
+      <label>
+        Fichier
+        <input type="file" id="file" accept=".ods,.xlsx,.xls">
+      </label>
+
+      <div id="preview" hidden>
+        <h3>Ce que je lis dans le fichier</h3>
+        <div id="preview-body"></div>
+        <div class="actions">
+          <button type="button" id="do-import">Envoyer vers l'application</button>
+          <button type="button" id="cancel-import" class="link">Annuler</button>
+        </div>
+      </div>
+
+      <div id="import-result" hidden></div>
+    </details>
   </section>
 
   <!-- ----------------------------------------------------------- overview -->

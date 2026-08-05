@@ -29,8 +29,14 @@ const chunk = (arr, size = 200) => {
  * `parsed` est le résultat de parseWorkbook().
  */
 export async function syncWorkbook(db, parsed, options = {}) {
-  const { fileName = null, source = 'manuel', when = new Date() } = options;
+  const { fileName = null, source = 'manuel', when = new Date(), fileModifiedAt = null } = options;
   const report = { warnings: [...parsed.warnings], steps: {}, errors: [] };
+
+  // On mémorise la date d'enregistrement du fichier importé, pas seulement
+  // l'heure de l'import : c'est ce qui permet, depuis un autre ordinateur, de
+  // détecter qu'on s'apprête à envoyer une copie plus ancienne que la dernière
+  // importée — ce qui ferait redescendre des compteurs.
+  const stamp = fileModifiedAt ? { file_modified_at: fileModifiedAt } : {};
 
   const fail = (label, error) => {
     if (error) report.errors.push(`${label} : ${error.message}`);
@@ -40,7 +46,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
   // ------------------------------------------------------------ 1. import
   const { data: imported, error: importError } = await db
     .from('suivi_imports')
-    .insert({ file_name: fileName, source, warnings: parsed.warnings, summary: {} })
+    .insert({ file_name: fileName, source, warnings: parsed.warnings, summary: stamp })
     .select()
     .single();
   if (!fail('suivi_imports', importError)) return report;
@@ -329,7 +335,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
 
   await db
     .from('suivi_imports')
-    .update({ warnings: report.warnings, summary: report.steps })
+    .update({ warnings: report.warnings, summary: { ...report.steps, ...stamp } })
     .eq('id', importId);
 
   report.importId = importId;

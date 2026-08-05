@@ -7,6 +7,7 @@ import {
   SCHOOL_YEAR_START,
   IGNORED_SHEETS,
   loadLocalSecrets,
+  MISSING_SERVICE_KEY,
 } from './config.js';
 import { parseWorkbook } from './parser.js';
 import { syncWorkbook } from './sync.js';
@@ -26,15 +27,24 @@ import {
   PERIODS,
 } from './rules.js';
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 const state = { parsed: null, fileName: null, overview: null };
 
 // --------------------------------------------------------------------- accès
 
-// Le mot de passe vient d'un fichier local, jamais publié. En ligne, ce fichier
-// est absent : l'administration est donc inaccessible, et c'est le but.
+// Le mot de passe et la clé d'écriture viennent d'un fichier local, jamais
+// publié. En ligne, ce fichier est absent : l'administration est donc
+// inaccessible, et c'est le but.
 const secrets = await loadLocalSecrets();
+
+// La clé anon ne sait plus que lire (sql/policies.sql). Tout ce que l'admin
+// écrit — conseils, bulletins figés, import d'un fichier choisi à la main —
+// passe donc par la clé `service_role`. Sans elle, on se connecte quand même :
+// le tableau de bord se lit, seules les écritures refuseront, avec un message.
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  secrets.SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY
+);
 
 if (!secrets.ADMIN_PASSWORD) {
   $('gate-error').textContent =
@@ -58,9 +68,176 @@ $('gate-form').addEventListener('submit', (event) => {
   $('period-info').textContent =
     `Période ${period} · dernier cours le ${formatDate(definition.lastCourse)} · ` +
     `conseil le ${formatDate(definition.freeze)}`;
+  if (!secrets.SUPABASE_SERVICE_KEY) {
+    $('no-write-key').textContent = `Lecture seule. ${MISSING_SERVICE_KEY}`;
+    $('no-write-key').hidden = false;
+  }
+
   renderAdvice();
   renderFreeze();
+  detectLocalServer();
 });
+
+// ------------------------------------------------- mise à jour en un clic
+//
+// Un navigateur ne peut pas ouvrir un fichier par son chemin : c'est le petit
+// serveur local (« Ouvrir l'administration.bat ») qui lit le classeur OneDrive
+// et l'envoie. Il n'existe que sur cet ordinateur, donc si la page est ouverte
+// en ligne, on ne propose que le choix d'un fichier à la main.
+
+async function detectLocalServer() {
+  let info;
+  try {
+    const answer = await fetch('api/workbook');
+    if (!answer.ok) return;
+    info = await answer.json();
+  } catch {
+    return; // pas de serveur local : on garde seulement l'import par fichier
+  }
+
+  $('auto-import').hidden = false;
+  $('manual-import').open = false;
+
+  if (!info.exists) {
+    $('auto-file').innerHTML =
+      `<span class="error">Classeur introuvable :</span> <code>${escape(info.path)}</code><br>` +
+      `<span class="small">Dépose-le dans tes téléchargements ou sur le bureau et recharge la page, ` +
+      `indique son chemin dans <code>js/config.local.js</code>, ou importe-le à la main ci-dessous.</span>`;
+    $('do-auto-import').disabled = true;
+    $('manual-import').open = true;
+    return;
+  }
+
+  // Quand le fichier a été trouvé tout seul, on le dit : sur un ordinateur où
+  // traînent plusieurs classeurs (copies, année précédente), il faut pouvoir
+  // repérer une mauvaise pioche avant d'envoyer.
+  const origin =
+    info.how === 'trouvé automatiquement'
+      ? ` · trouvé automatiquement${info.alternatives ? `, ${info.alternatives} autre(s) candidat(s) écarté(s)` : ''}`
+      : '';
+
+  $('auto-file').innerHTML =
+    `Classeur lu directement : <code>${escape(info.name)}</code><br>` +
+    `<span class="small">Enregistré ${formatWhen(info.modifiedAt)} · ` +
+    `${escape(info.path)}${origin}</span>`;
+
+  await warnIfStale(info);
+}
+
+/**
+ * D'un ordinateur à l'autre, le classeur n'est pas toujours le même fichier :
+ * sur un poste sans OneDrive, c'est une copie téléchargée, qui peut être plus
+ * ancienne que celle déjà importée ailleurs. L'envoyer ferait REDESCENDRE des
+ * compteurs, puisque l'import écrit des valeurs absolues.
+ *
+ * On compare donc la date d'enregistrement de CE fichier à celle du fichier
+ * réellement importé la dernière fois — et non à l'heure de l'import, qui est
+ * forcément postérieure à l'enregistrement et ferait crier au loup à chaque
+ * ouverture.
+ */
+async function warnIfStale(info) {
+  const { data } = await db
+    .from('suivi_imports')
+    .select('imported_at, file_name, summary')
+    .order('imported_at', { ascending: false })
+    .limit(20);
+
+  const stamped = (data || [])
+    .map((row) => ({ ...row, fileTime: Date.parse(row.summary?.file_modified_at ?? '') }))
+    .filter((row) => !Number.isNaN(row.fileTime))
+    .sort((a, b) => b.fileTime - a.fileTime);
+
+  const newest = stamped[0];
+  if (!newest) return; // aucun import ne porte encore cette information
+
+  if (new Date(info.modifiedAt).getTime() >= newest.fileTime) return;
+
+  const warning = document.createElement('p');
+  warning.className = 'error small';
+  warning.innerHTML =
+    `⚠️ Une version <strong>plus récente</strong> de ce classeur a déjà été importée ` +
+    `(enregistrée ${formatWhen(new Date(newest.fileTime).toISOString())}, ` +
+    `${escape(newest.file_name || 'fichier inconnu')}, envoyée ${formatWhen(newest.imported_at)}).<br>` +
+    `Le fichier trouvé ici est plus ancien : l'envoyer ferait redescendre des compteurs. ` +
+    `Récupère la version à jour avant de mettre à jour.`;
+  $('auto-file').after(warning);
+}
+
+$('do-auto-import').addEventListener('click', async () => {
+  const button = $('do-auto-import');
+  const status = $('auto-status');
+  button.disabled = true;
+  button.textContent = 'Lecture et envoi…';
+  status.textContent = '';
+
+  let result;
+  try {
+    const answer = await fetch('api/import', { method: 'POST' });
+    result = await answer.json();
+    if (!answer.ok) throw new Error(result.error || `Erreur ${answer.status}`);
+  } catch (error) {
+    status.className = 'error small';
+    status.textContent = error.message;
+    button.disabled = false;
+    button.textContent = 'Mettre à jour maintenant';
+    return;
+  }
+
+  button.disabled = false;
+  button.textContent = 'Mettre à jour maintenant';
+  status.className = 'saved';
+  status.textContent = result.errors.length
+    ? 'Terminé, avec des erreurs'
+    : `À jour (${result.seconds} s)`;
+
+  const box = $('auto-result');
+  box.innerHTML = '';
+  box.hidden = false;
+  box.append(
+    reportGrid({
+      Onglets: result.sheets,
+      Inscriptions: result.inscriptions,
+      ...labelSteps(result.steps),
+    })
+  );
+  if (result.errors.length) box.append(warnList(result.errors));
+  else if (result.warnings.length) box.append(warnList(result.warnings, 'remarque(s) de lecture'));
+
+  // Le tableau de bord doit repartir de la base après un import.
+  state.overview = null;
+  const refreshed = document.createElement('p');
+  refreshed.className = 'muted small';
+  refreshed.textContent = 'Les élèves voient la nouvelle version dès qu\'ils rechargent leur page.';
+  box.append(refreshed);
+});
+
+/** « il y a 20 minutes », « hier à 18:40 »… pour juger de la fraicheur. */
+function formatWhen(iso) {
+  const date = new Date(iso);
+  const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+  const time = date.toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' });
+  if (minutes < 2) return "à l'instant";
+  if (minutes < 60) return `il y a ${minutes} minutes`;
+  if (minutes < 24 * 60) return `aujourd'hui à ${time}`;
+  if (minutes < 48 * 60) return `hier à ${time}`;
+  return `le ${formatDate(iso)} à ${time}`;
+}
+
+function warnList(messages, label = 'erreur(s)') {
+  const wrapper = document.createElement('div');
+  const title = document.createElement('p');
+  title.className = 'muted small';
+  title.textContent = `${messages.length} ${label} :`;
+  const list = document.createElement('ul');
+  list.className = 'warn-list';
+  messages.forEach((message) => {
+    const li = document.createElement('li');
+    li.textContent = message;
+    list.append(li);
+  });
+  wrapper.append(title, list);
+  return wrapper;
+}
 
 // -------------------------------------------------------------------- onglets
 
@@ -102,6 +279,9 @@ $('file').addEventListener('change', async (event) => {
     ignore: IGNORED_SHEETS,
   });
   state.fileName = file.name;
+  // Même mémo que pour l'import automatique : sert à repérer, plus tard et
+  // depuis un autre poste, qu'on enverrait une copie plus ancienne.
+  state.fileModifiedAt = file.lastModified ? new Date(file.lastModified).toISOString() : null;
   renderPreview();
 });
 
@@ -180,6 +360,7 @@ $('do-import').addEventListener('click', async () => {
   const report = await syncWorkbook(db, state.parsed, {
     fileName: state.fileName,
     source: 'manuel',
+    fileModifiedAt: state.fileModifiedAt,
   });
 
   button.disabled = false;

@@ -9,6 +9,8 @@
     "import": "node tools/import.mjs",
     "status": "node tools/status.mjs",
     "test:data": "node tools/test-data.mjs",
+    "check:policies": "node tools/check-policies.mjs",
+    "clean:history": "node tools/clean-history.mjs",
     "test:parser": "node tools/test-parser.mjs",
     "test:rules": "node tools/test-rules.mjs",
     "test:2025": "node tools/check-2025.mjs",

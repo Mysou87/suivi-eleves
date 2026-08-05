@@ -199,53 +199,15 @@ insert into suivi_advice (key, body) values
 on conflict (key) do nothing;
 
 -- ------------------------------------------------------------------- RLS
-
--- Même choix que Leitner : pas d'authentification Supabase, accès anon complet.
--- La protection de l'admin reste le mot de passe dans le code.
 --
--- Écrit table par table plutôt qu'en boucle, pour que l'analyseur de Supabase
--- voie bien que RLS est activé partout. Les `drop policy if exists` ne servent
--- qu'à rendre le script relançable : ils ne touchent aucune donnée.
-
-alter table suivi_courses enable row level security;
-drop policy if exists anon_all on suivi_courses;
-create policy anon_all on suivi_courses for all to anon using (true) with check (true);
-
-alter table suivi_course_aliases enable row level security;
-drop policy if exists anon_all on suivi_course_aliases;
-create policy anon_all on suivi_course_aliases for all to anon using (true) with check (true);
-
-alter table suivi_items enable row level security;
-drop policy if exists anon_all on suivi_items;
-create policy anon_all on suivi_items for all to anon using (true) with check (true);
-
-alter table suivi_thresholds enable row level security;
-drop policy if exists anon_all on suivi_thresholds;
-create policy anon_all on suivi_thresholds for all to anon using (true) with check (true);
-
-alter table suivi_socle enable row level security;
-drop policy if exists anon_all on suivi_socle;
-create policy anon_all on suivi_socle for all to anon using (true) with check (true);
-
-alter table suivi_imports enable row level security;
-drop policy if exists anon_all on suivi_imports;
-create policy anon_all on suivi_imports for all to anon using (true) with check (true);
-
-alter table suivi_enrollments enable row level security;
-drop policy if exists anon_all on suivi_enrollments;
-create policy anon_all on suivi_enrollments for all to anon using (true) with check (true);
-
-alter table suivi_counters enable row level security;
-drop policy if exists anon_all on suivi_counters;
-create policy anon_all on suivi_counters for all to anon using (true) with check (true);
-
-alter table suivi_history enable row level security;
-drop policy if exists anon_all on suivi_history;
-create policy anon_all on suivi_history for all to anon using (true) with check (true);
-
-alter table suivi_targets enable row level security;
-drop policy if exists anon_all on suivi_targets;
-create policy anon_all on suivi_targets for all to anon using (true) with check (true);
+-- Les droits d'accès sont dans `policies.sql`, à exécuter juste après ce
+-- fichier. Ils y sont seuls pour n'exister qu'en un seul endroit : deux copies
+-- de policies finiraient par diverger, et c'est le genre d'écart qui rouvre un
+-- accès en écriture sans qu'on s'en aperçoive.
+--
+-- En résumé : la clé anon publiée ne peut que LIRE ; seule `suivi_targets`
+-- (l'objectif que l'élève choisit) accepte ses écritures ; l'import passe par la
+-- clé `service_role` rangée dans `js/config.local.js`, jamais publiée.
 
 alter table suivi_snapshots enable row level security;
 drop policy if exists anon_all on suivi_snapshots;
