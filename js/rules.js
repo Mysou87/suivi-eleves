@@ -83,6 +83,17 @@ export function periodByNumber(n) {
   return PERIODS.find((p) => p.number === n) || null;
 }
 
+/**
+ * Jusqu'à cette date, l'année vient de commencer : les élèves n'ont pas
+ * encore eu le temps de se lancer, quel que soit leur retard apparent sur les
+ * seuils. À mettre à jour chaque année, en même temps que PERIODS.
+ */
+export const YEAR_START_CUTOFF = '2026-09-30';
+
+export function yearJustStarted(when = new Date()) {
+  return toDate(when) <= dayEnd(YEAR_START_CUTOFF);
+}
+
 // ----------------------------------------------------------------- compteurs
 
 /**
@@ -248,12 +259,13 @@ export function nextLevel(level) {
  * pédagogique : d'abord ce qui est simple à rattraper, ensuite les savoir-faire.
  */
 export function adviceKey(gap, student, options = {}) {
-  const { periodJustStarted = false } = options;
   const g = gap.gaps || {};
   const count = Object.values(g).filter((v) => v > 0).length;
 
   if (gap.reached) return options.atTop ? 'level-max' : 'target-reached';
-  if (periodJustStarted && count === 0) return 'period-start';
+  // En tout début d'année, personne n'est vraiment « en retard » : le retard
+  // apparent sur les seuils vient juste de ne pas avoir encore commencé.
+  if (options.yearJustStarted) return 'period-start';
   if (count >= 3) return 'many-behind';
 
   if (g.bexDiff > 0 || gap.socleMissing.length) return 'need-new-bex';

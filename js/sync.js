@@ -316,6 +316,37 @@ export async function syncWorkbook(db, parsed, options = {}) {
       .upsert(part, { onConflict: 'student_id,course_id' });
     fail('suivi_enrollments', error);
   }
+
+  // Un élève qui a quitté un cours (départ, changement de groupe) n'apparait
+  // plus dans les élèves de cet onglet : on désactive son inscription plutôt
+  // que de la supprimer, pour garder son historique sans qu'il reste affiché
+  // comme actif dans le tableau de bord ou chez l'admin.
+  const stillWanted = new Set(enrollmentRows.map((e) => `${e.student_id}|${e.course_id}`));
+  const importedCourseIds = [...courseIdBySheet.values()];
+  const { data: currentlyActive } = await db
+    .from('suivi_enrollments')
+    .select('student_id, course_id')
+    .eq('is_active', true)
+    .in('course_id', importedCourseIds);
+
+  const toDeactivate = (currentlyActive || []).filter(
+    (e) => !stillWanted.has(`${e.student_id}|${e.course_id}`)
+  );
+  for (const part of chunk(toDeactivate)) {
+    const { error } = await db
+      .from('suivi_enrollments')
+      .upsert(
+        part.map((e) => ({ student_id: e.student_id, course_id: e.course_id, is_active: false })),
+        { onConflict: 'student_id,course_id' }
+      );
+    fail('suivi_enrollments (désactivation)', error);
+  }
+  report.steps.enrollmentsDeactivated = toDeactivate.length;
+  if (toDeactivate.length) {
+    const namesById = new Map((existingStudents || []).map((s) => [s.id, `${s.last_name} ${s.first_name}`]));
+    const names = toDeactivate.map((e) => namesById.get(e.student_id) || e.student_id);
+    report.warnings.push(`${toDeactivate.length} inscription(s) désactivée(s) (parti ou changé de cours) : ${names.join(', ')}`);
+  }
   for (const part of chunk(counterRows)) {
     const { error } = await db
       .from('suivi_counters')

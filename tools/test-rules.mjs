@@ -16,6 +16,7 @@ import {
   describeGap,
   missingSocle,
   socleForPeriod,
+  yearJustStarted,
 } from '../js/rules.js';
 
 const FILE = process.argv[2] || WORKBOOK_PATH;
@@ -216,6 +217,21 @@ check('rien après TB', nextLevel('TB'), null);
 
 const behind = gapTo('B', makeStudent({ dl: 1 }), p1, ctx);
 check('trois compteurs en retard → conseil de priorisation', adviceKey(behind, makeStudent({ dl: 1 })), 'many-behind');
+
+rule('Lancement de l\'année (jusqu\'au 30 septembre)');
+check('7/9 : lancement en cours', yearJustStarted('2026-09-07'), true);
+check('30/9 : encore le lancement', yearJustStarted('2026-09-30'), true);
+check('1/10 : lancement terminé', yearJustStarted('2026-10-01'), false);
+check(
+  'même élève très en retard, mais pendant le lancement → period-start plutôt que many-behind',
+  adviceKey(behind, makeStudent({ dl: 1 }), { yearJustStarted: true }),
+  'period-start'
+);
+check(
+  'objectif déjà atteint pendant le lancement → reste target-reached',
+  adviceKey(reached, mid, { yearJustStarted: true }),
+  'target-reached'
+);
 
 // ---------------------------------------------------- différence entre cours
 

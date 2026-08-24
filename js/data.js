@@ -223,7 +223,7 @@ export async function loadHistory(db, studentId, courseId) {
 export async function loadAdminOverview(db, when = new Date()) {
   const period = currentPeriod(when);
 
-  const [coursesRes, countersRes, studentsRes, thresholdsRes, socleRes, targetsRes] =
+  const [coursesRes, countersRes, studentsRes, thresholdsRes, socleRes, targetsRes, enrollmentsRes] =
     await Promise.all([
       db.from('suivi_courses').select('*').order('sheet_name'),
       db.from('suivi_counters').select('*'),
@@ -231,6 +231,7 @@ export async function loadAdminOverview(db, when = new Date()) {
       db.from('suivi_thresholds').select('*'),
       db.from('suivi_socle').select('*'),
       db.from('suivi_targets').select('student_id, course_id, target_level').eq('period', period),
+      db.from('suivi_enrollments').select('student_id, course_id').eq('is_active', true),
     ]);
 
   const error = [coursesRes, countersRes, studentsRes].find((r) => r.error)?.error;
@@ -240,6 +241,11 @@ export async function loadAdminOverview(db, when = new Date()) {
   const targetByPair = new Map(
     (targetsRes.data || []).map((t) => [`${t.student_id}|${t.course_id}`, t.target_level])
   );
+  // Un élève parti (départ, changement de groupe) garde ses compteurs en base
+  // pour l'historique, mais ne doit plus apparaitre comme actif dans ce cours.
+  const activePairs = new Set(
+    (enrollmentsRes.data || []).map((e) => `${e.student_id}|${e.course_id}`)
+  );
 
   const courses = (coursesRes.data || []).map((course) => {
     const thresholdRows = (thresholdsRes.data || []).filter(
@@ -248,7 +254,7 @@ export async function loadAdminOverview(db, when = new Date()) {
     const socleRow = (socleRes.data || []).find((s) => s.course_label === course.course_label);
 
     const rows = (countersRes.data || [])
-      .filter((c) => c.course_id === course.id)
+      .filter((c) => c.course_id === course.id && activePairs.has(`${c.student_id}|${c.course_id}`))
       .map((counterRow) => ({
         student: studentById.get(counterRow.student_id) || null,
         counterRow,

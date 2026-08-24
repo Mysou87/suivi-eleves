@@ -16,7 +16,7 @@ export async function prepareFreeze(db, period) {
   const definition = periodByNumber(period);
   if (!definition) return { error: `période ${period} inconnue` };
 
-  const [countersRes, coursesRes, thresholdsRes, socleRes, targetsRes, existingRes] =
+  const [countersRes, coursesRes, thresholdsRes, socleRes, targetsRes, existingRes, enrollmentsRes] =
     await Promise.all([
       db.from('suivi_counters').select('*'),
       db.from('suivi_courses').select('id, sheet_name, course_label'),
@@ -24,10 +24,17 @@ export async function prepareFreeze(db, period) {
       db.from('suivi_socle').select('*'),
       db.from('suivi_targets').select('student_id, course_id, target_level').eq('period', period),
       db.from('suivi_snapshots').select('student_id, course_id').eq('period', period),
+      db.from('suivi_enrollments').select('student_id, course_id').eq('is_active', true),
     ]);
 
   const error = [countersRes, coursesRes, thresholdsRes].find((r) => r.error)?.error;
   if (error) return { error: error.message };
+
+  // Un élève parti entre le dernier import et le figeage ne reçoit pas de
+  // bulletin pour ce cours : son inscription a été désactivée par l'import.
+  const activePairs = new Set(
+    (enrollmentsRes.data || []).map((e) => `${e.student_id}|${e.course_id}`)
+  );
 
   const courseById = new Map((coursesRes.data || []).map((c) => [c.id, c]));
   const thresholdsByLabel = new Map();
@@ -51,6 +58,7 @@ export async function prepareFreeze(db, period) {
     if (!course) return;
 
     const pair = `${counterRow.student_id}|${counterRow.course_id}`;
+    if (!activePairs.has(pair)) return;
     if (alreadyFrozen.has(pair)) {
       skipped.push(pair);
       return;
