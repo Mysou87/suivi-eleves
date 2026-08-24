@@ -18,7 +18,7 @@ l'application, sans le bouton de mise à jour ni les nouveaux droits d'accès.
 - [X] Ouvrir **GitHub Desktop** sur l'ordinateur principal
 - [X] Vérifier que le dépôt affiché est bien `suivi-eleves`
 - [X] En bas à gauche, écrire un résumé (par exemple `bouton de mise à jour et droits d'écriture`)
-- [ ] Cliquer **Commit to main**, puis **Push origin** en haut
+- [X] Cliquer **Commit to main**, puis **Push origin** en haut
 
 Le fichier `js/config.local.js` n'est jamais envoyé : il est exclu du dépôt.
 C'est voulu, et c'est pour ça qu'il faudra le recréer à la main à l'étape 3.
