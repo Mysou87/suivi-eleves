@@ -2,7 +2,7 @@
 //   node tools/test-parser.mjs ["chemin\\vers\\Feuilles de cotes.ods"]
 
 import XLSX from 'xlsx';
-import { parseWorkbook, parseCourseSheet, parseLevelValue } from '../js/parser.js';
+import { parseWorkbook, parseCourseSheet, parseLevelValue, studentKey, stripAccommodationMark } from '../js/parser.js';
 import { WORKBOOK_PATH, SCHOOL_YEAR_START } from '../js/config.js';
 
 const file = process.argv[2] || WORKBOOK_PATH;
@@ -206,6 +206,15 @@ check('à défaut, la dernière « Auto »', legacy.students[0].examLevel, 'TB')
 check(
   'et un avertissement',
   legacy.warnings.some((w) => w.includes('Auto')),
+  true
+);
+
+check('marquage « * » retiré du prénom', stripAccommodationMark('Sara *'), 'Sara');
+check('marquage « (*) » retiré du prénom', stripAccommodationMark('Jonathan (*)'), 'Jonathan');
+check('prénom sans marquage inchangé', stripAccommodationMark('Sara'), 'Sara');
+check(
+  'même identité avec ou sans marquage',
+  studentKey('Ait Almouh', 'Sara *') === studentKey('Ait Almouh', 'Sara'),
   true
 );
 

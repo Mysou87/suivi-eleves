@@ -81,6 +81,7 @@ export const WORKBOOK_NAME_PATTERN = /^feuilles de cotes.*\.(xlsx|xls|ods)$/i;
  */
 export const COURSE_MAP = {
   '4A Sciences': { thresholds: '4e Sciences', list: '4e Sciences' },
+  '4A Maths': { thresholds: '4e Maths', list: '4e Maths' },
   '4e Option': { thresholds: '4e Option', list: '4e Option Sciences' },
   '5e Chimie A': { thresholds: '5e Chimie', list: '5e Chimie' },
   '5e Chimie B': { thresholds: '5e Chimie', list: '5e Chimie' },
@@ -118,13 +119,8 @@ export function guessCourseLabel(sheetName) {
 /**
  * Onglets présents dans le classeur mais que l'application ignore.
  * Les underscores et la casse n'ont pas d'importance.
- *
- * « 4A Maths » : cours d'un autre professeur, pas encore configuré (ni bloc
- * dans la feuille Liste, ni grille de seuils). À retirer d'ici dès que ces deux
- * blocs existeront — l'objectif est bien que l'élève retrouve tous ses cours au
- * même endroit.
  */
-export const IGNORED_SHEETS = ['4A Maths'];
+export const IGNORED_SHEETS = [];
 
 // Les libellés des rôles de mission et des types de dépassement des onglets de
 // résultats sont ceux de l'an dernier et ne correspondent plus à la feuille

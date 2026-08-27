@@ -26,9 +26,21 @@ export function norm(v) {
     .toLowerCase();
 }
 
+/**
+ * Les fiches d'aménagements raisonnables marquent parfois le prénom d'un
+ * « * » (acquis) ou d'un « (*) » (en cours), directement dans le classeur de
+ * cotes. Ce marquage ne fait pas partie de l'identité de l'élève : le retirer
+ * évite qu'il se retrouve dédoublé en base au moindre import qui le reprend.
+ */
+export function stripAccommodationMark(firstName) {
+  return String(firstName ?? '')
+    .replace(/\s*\(\*\)\s*$|\s*\*\s*$/, '')
+    .trim();
+}
+
 /** clé d'identité d'un élève, tolérante à la casse et aux accents */
 export function studentKey(lastName, firstName) {
-  return `${norm(lastName)}|${norm(firstName)}`;
+  return `${norm(lastName)}|${norm(stripAccommodationMark(firstName))}`;
 }
 
 function cell(rows, r, c) {
@@ -538,7 +550,7 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
 
   for (let r = rosterBlock.firstStudentRow; r <= rosterBlock.lastStudentRow; r++) {
     const lastName = cell(rows, r, rosterBlock.cols.lastName);
-    const firstName = cell(rows, r, rosterBlock.cols.firstName);
+    const firstName = stripAccommodationMark(cell(rows, r, rosterBlock.cols.firstName));
     if (isBlank(lastName) && isBlank(firstName)) continue;
 
     // Sans colonne classe (tronc commun), la classe est celle du nom d'onglet.
