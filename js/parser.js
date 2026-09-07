@@ -589,7 +589,8 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
     return map;
   };
 
-  // --- devoirs libres et quiz : une case cochée par semaine
+  // --- devoirs libres et quiz : une case cochée par semaine, sauf si
+  // plusieurs ont été faits le même jour : « 2 » compte alors pour deux.
   const readWeeks = (block, weeks, target) => {
     if (!block) return;
     const rowsByKey = rowIndexOf(block);
@@ -597,8 +598,13 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
       const r = rowsByKey.get(s.key);
       if (r === undefined) return;
       weeks.forEach((w) => {
-        if (isBlank(cell(rows, r, w.col))) return;
-        s[target].push({ label: w.label, date: w.date, value: cell(rows, r, w.col) });
+        const raw = cell(rows, r, w.col);
+        if (isBlank(raw)) return;
+        const n = Number(String(raw).replace(',', '.'));
+        const count = Number.isFinite(n) && n > 0 ? Math.round(n) : 1;
+        for (let i = 0; i < count; i++) {
+          s[target].push({ label: w.label, date: w.date, value: raw });
+        }
       });
       s.counters[target] = s[target].length;
     });

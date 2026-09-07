@@ -209,6 +209,17 @@ check(
   true
 );
 
+const doubleQuizSheet = [
+  [],
+  ['', '', '', '', 'DEVOIRS LIBRES'],
+  ['', '', '', '', 'S1', 'S2', 'S3'],
+  ['', '', '', '', '7/9', '14/9', '21/9'],
+  ['B', 'Dupont', 'Léa', '', '1', '2', ''],
+];
+const doubled = parseCourseSheet('Test', doubleQuizSheet, { startYear: 2026 });
+check('un "2" dans une semaine compte pour deux devoirs libres', doubled.students[0].counters.dl, 3);
+check('les deux partagent la même date', doubled.students[0].dl.filter((d) => d.label === '14/9').length, 2);
+
 check('marquage « * » retiré du prénom', stripAccommodationMark('Sara *'), 'Sara');
 check('marquage « (*) » retiré du prénom', stripAccommodationMark('Jonathan (*)'), 'Jonathan');
 check('prénom sans marquage inchangé', stripAccommodationMark('Sara'), 'Sara');
