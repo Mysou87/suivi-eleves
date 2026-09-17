@@ -83,6 +83,8 @@ export const COURSE_MAP = {
   '4A Sciences': { thresholds: '4e Sciences', list: '4e Sciences' },
   '4A Maths': { thresholds: '4e Maths', list: '4e Maths' },
   '4e Option': { thresholds: '4e Option', list: '4e Option Sciences' },
+  '5Maths6A': { thresholds: '5e Maths 6H', list: '5e Maths 6H' },
+  '5Maths6B': { thresholds: '5e Maths 6H', list: '5e Maths 6H' },
   '5e Chimie A': { thresholds: '5e Chimie', list: '5e Chimie' },
   '5e Chimie B': { thresholds: '5e Chimie', list: '5e Chimie' },
   '5e Chimie C': { thresholds: '5e Chimie', list: '5e Chimie' },
