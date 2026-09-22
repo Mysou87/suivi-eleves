@@ -33,10 +33,15 @@ create table if not exists suivi_courses (
   -- Calendrier réel des semaines de devoirs libres de ce cours (dates ISO,
   -- congés/décloisonnements déjà exclus) : sert à adapter les conseils au
   -- rythme réellement possible plutôt qu'au seuil de fin de période.
-  dl_week_dates jsonb not null default '[]'
+  dl_week_dates jsonb not null default '[]',
+  -- Dates des moments BEX déjà passés (ligne « Eval : » du classeur, saisie
+  -- à la main) : plafonne les validations/BEX différentes exigées, qui
+  -- n'avancent pas à un rythme hebdomadaire régulier comme les DL.
+  eval_dates    jsonb not null default '[]'
 );
 
 alter table suivi_courses add column if not exists dl_week_dates jsonb not null default '[]';
+alter table suivi_courses add column if not exists eval_dates jsonb not null default '[]';
 
 -- Correspondance des libellés quand ils diffèrent d'une feuille à l'autre
 -- (onglet « 4e Option » → « 4e Option Sciences » dans la feuille Liste).

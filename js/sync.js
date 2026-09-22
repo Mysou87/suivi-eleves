@@ -59,6 +59,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
     year_level: g.year,
     group_letter: g.group,
     dl_week_dates: g.layout?.dlWeekDates || [],
+    eval_dates: g.layout?.evalDates || [],
   }));
 
   const { error: courseError } = await db

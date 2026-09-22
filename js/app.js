@@ -348,7 +348,10 @@ function renderGap(course, levels, counters, context, target, assessment) {
   title.textContent = `Pour atteindre ${LEVEL_LABELS[target]}`;
   addGapItems(list, gap, course);
 
-  const paceGaps = paceGapTo(target, course.student, levels, course.dlWeekDates, state.period, context);
+  const paceGaps = paceGapTo(target, course.student, levels, course.dlWeekDates, state.period, {
+    ...context,
+    evalDates: course.evalDates,
+  });
   const key = adviceKey(gap, course.student, { atTop, yearJustStarted: yearJustStarted(), paceGaps });
   const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
   advice.textContent = fill(state.advice[key] || '', {

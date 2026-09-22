@@ -489,7 +489,10 @@ async function renderOverview() {
         // n'est pas encore connu — pas de couleur trompeuse dans ce cas).
         const paceGaps = gap.reached
           ? null
-          : paceGapTo(target, entry.student_model, levels, course.dl_week_dates, period, context);
+          : paceGapTo(target, entry.student_model, levels, course.dl_week_dates, period, {
+              ...context,
+              evalDates: course.eval_dates,
+            });
 
         let adviceKeyShown;
         let adviceText;

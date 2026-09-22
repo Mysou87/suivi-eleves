@@ -79,7 +79,7 @@ console.log(`\nPériode courante : ${dash.period}`);
 console.log(`Cours de cet élève : ${dash.courses.map((c) => c.sheetName).join(' · ')}`);
 
 const advice = await loadAdvice(db);
-check('11 conseils chargés', Object.keys(advice).length === 11);
+check('12 conseils chargés', Object.keys(advice).length === 12);
 
 dash.courses.forEach((c) => {
   console.log(`\n  ${c.sheetName}  (seuils de « ${c.label} »)`);

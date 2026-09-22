@@ -365,6 +365,30 @@ check(
   'need-new-bex'
 );
 
+// Avec le vrai calendrier des moments BEX (context.evalDates) : un seul
+// moment a eu lieu jusqu'ici → personne ne peut avoir plus d'1 validation,
+// donc 1 validation doit être considérée à l'heure, même si le rythme des DL
+// en exigerait 2. C'est la demande exacte de Laureline (cas 5e Chimie).
+const oneMomentSoFar = makeStudent({ dl: 3, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0], dep: 1 });
+const paceOneMoment = paceGapTo('TB', oneMomentSoFar, p1, WEEKS, 1, {
+  ...ctx,
+  when: '2026-09-21',
+  evalDates: ['2026-09-14'],
+});
+check('1 seul moment BEX passé, 1 validation faite → à l\'heure (pas 2 exigées)', paceOneMoment, {});
+check(
+  'conseil : on-pace, plus need-new-bex, avec le vrai calendrier',
+  adviceKey(gapTo('TB', oneMomentSoFar, p1, ctx), oneMomentSoFar, { paceGaps: paceOneMoment }),
+  'on-pace'
+);
+// Un 2e moment déjà passé change la donne : 1 validation ne suffit plus.
+const paceTwoMoments = paceGapTo('TB', oneMomentSoFar, p1, WEEKS, 1, {
+  ...ctx,
+  when: '2026-09-21',
+  evalDates: ['2026-09-07', '2026-09-14'],
+});
+check('2 moments BEX passés, 1 seule validation faite → en retard', paceTwoMoments.validations > 0, true);
+
 // Cas réel rencontré (Dadkhah, 6e Chimie) : à l'heure pour DL/quiz, il ne lui
 // manque QU'UNE BEX — validations et bexDiff manquent ensemble (une BEX
 // validée augmenterait les deux à la fois), ça ne doit compter que pour UN

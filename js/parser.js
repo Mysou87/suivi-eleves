@@ -66,27 +66,56 @@ function rowIsEmpty(rows, r) {
 }
 
 /**
- * Retrouve une date d'en-tête quel que soit le format produit par LibreOffice
- * ou Google Sheets : « 7/9 », « 07/09/2026 », « 2026-09-07 ».
- * `startYear` = année civile de la rentrée (2026 pour 2026-2027).
+ * Excel convertit parfois en vraie date (et réaffiche en toutes lettres) une
+ * cellule tapée à la main hors d'un en-tête déjà en texte — ex. « 22-Sep » au
+ * lieu de « 22/09 ». Noms de mois en français et en anglais, abrégés ou non.
+ */
+const MONTH_NAMES = {
+  jan: 1, janv: 1, janvier: 1, january: 1,
+  fev: 2, fevr: 2, fevrier: 2, feb: 2, february: 2,
+  mar: 3, mars: 3, march: 3,
+  avr: 4, avril: 4, apr: 4, april: 4,
+  mai: 5, may: 5,
+  juin: 6, jun: 6, june: 6,
+  juil: 7, juillet: 7, jul: 7, july: 7,
+  aou: 8, aout: 8, aug: 8, august: 8,
+  sep: 9, sept: 9, septembre: 9, september: 9,
+  oct: 10, octobre: 10, october: 10,
+  nov: 11, novembre: 11, november: 11,
+  dec: 12, decembre: 12, december: 12,
+};
+
+/**
+ * Retrouve une date d'en-tête quel que soit le format produit par LibreOffice,
+ * Excel ou Google Sheets : « 7/9 », « 07/09/2026 », « 2026-09-07 », ou en
+ * toutes lettres (« 22-Sep », « Sep-22 »). `startYear` = année civile de la
+ * rentrée (2026 pour 2026-2027).
  */
 export function parseHeaderDate(raw, startYear) {
   const s = String(raw ?? '').trim();
   if (!s) return null;
 
+  const withYear = (month, day, rawYear) => {
+    let year = rawYear ? +rawYear : null;
+    if (year !== null && year < 100) year += 2000;
+    // Sans année explicite : septembre à décembre = année de rentrée, sinon l'année suivante.
+    if (year === null) year = month >= 8 ? startYear : startYear + 1;
+    return new Date(year, month - 1, day);
+  };
+
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
 
   m = s.match(/^(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?$/);
-  if (!m) return null;
+  if (m) return withYear(+m[2], +m[1], m[3]);
 
-  const day = +m[1];
-  const month = +m[2];
-  let year = m[3] ? +m[3] : null;
-  if (year !== null && year < 100) year += 2000;
-  // Sans année explicite : septembre à décembre = année de rentrée, sinon l'année suivante.
-  if (year === null) year = month >= 8 ? startYear : startYear + 1;
-  return new Date(year, month - 1, day);
+  m = s.match(/^(\d{1,2})[\s-]+([a-zéèêîû]{3,10})\.?(?:[\s-]+(\d{2,4}))?$/i);
+  if (m && MONTH_NAMES[norm(m[2])]) return withYear(MONTH_NAMES[norm(m[2])], +m[1], m[3]);
+
+  m = s.match(/^([a-zéèêîû]{3,10})\.?[\s-]+(\d{1,2})(?:[\s-]+(\d{2,4}))?$/i);
+  if (m && MONTH_NAMES[norm(m[1])]) return withYear(MONTH_NAMES[norm(m[1])], +m[2], m[3]);
+
+  return null;
 }
 
 // ------------------------------------------------------------------- blocs
@@ -532,6 +561,25 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
   const dlWeeks = weekColumns(byType.dl);
   const quizWeeks = weekColumns(byType.quiz);
 
+  // Ligne optionnelle « Eval : date1, date2… » entre le titre du bloc BEX et
+  // sa vraie ligne d'en-têtes (comme la ligne « Socle » côté seuils) : donne
+  // le vrai calendrier des moments BEX de ce cours, entré à la main au fil de
+  // l'année. Repérée par son texte, pas par sa position.
+  const evalDates = [];
+  if (byType.bex && byType.bex.headerRow !== null) {
+    for (let r = byType.bex.titleRow + 1; r < byType.bex.headerRow; r++) {
+      const row = rows[r] || [];
+      const labelCol = row.findIndex((v) => norm(v).startsWith('eval'));
+      if (labelCol < 0) continue;
+      for (let c = labelCol + 1; c < row.length; c++) {
+        if (isBlank(row[c])) continue;
+        const date = parseHeaderDate(String(row[c]).trim(), startYear);
+        if (date) evalDates.push(date);
+      }
+      break;
+    }
+  }
+
   // Groupes de colonnes des blocs à passages multiples.
   const layoutWarnings = [];
   const groupsOf = (block) =>
@@ -702,6 +750,10 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
       // à savoir combien de semaines ont déjà eu lieu, pour adapter les
       // conseils au rythme au lieu de comparer au seuil de fin de période.
       dlWeekDates: dlWeeks.map((w) => w.date).filter(Boolean).map(toISODate),
+      // Dates des moments BEX déjà passés (ligne « Eval : » du classeur),
+      // triées : sert à savoir combien de fois une validation a déjà été
+      // possible, pour ne jamais exiger plus que ce qui a réellement eu lieu.
+      evalDates: [...evalDates].sort((a, b) => a - b).map(toISODate),
       bexGroups: bexGroups.map((g) => g.label),
       missionGroups: missionGroups.map((g) => g.label),
       depassementGroups: depGroups.map((g) => g.label),

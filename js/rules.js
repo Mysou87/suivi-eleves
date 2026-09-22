@@ -258,10 +258,9 @@ export function nextLevel(level) {
  * Part du chemin déjà parcouru dans la période, d'après le vrai calendrier
  * des semaines de devoirs libres de CE cours (congés/décloisonnements déjà
  * exclus, puisque ce sont les colonnes réellement présentes dans le classeur).
- * Sert de rythme commun aux 5 compteurs : les devoirs libres et les quiz ne
- * peuvent de toute façon pas aller plus vite qu'une semaine à la fois, et les
- * autres compteurs demandent, eux aussi, du temps pour être travaillés — pas
- * seulement de la place dans le classeur.
+ * Sert de rythme pour DL, quiz et dépassements — pas pour les validations ni
+ * les BEX différentes, qui n'avancent pas à un rythme hebdomadaire régulier
+ * (voir bexMomentsElapsed, basé sur les vraies dates de moments BEX).
  *
  * Sans calendrier connu (classeur pas encore réimporté depuis cet ajout), on
  * renvoie 1 : rien n'est adouci, comportement inchangé.
@@ -280,22 +279,14 @@ export function periodProgress(weekDates, period, when = new Date()) {
 }
 
 /**
- * Nombre de « moments BEX » déjà passés, d'après la cadence donnée par
- * Laureline : un moment toutes les 2 semaines, sans compter les 2 premières
- * semaines du cours (le temps de vraiment démarrer). Donc le 1er moment tombe
- * à la semaine 3, le 2e à la semaine 5, etc.
- *
- * Contrairement aux devoirs libres, aucune date de moment BEX n'est tracée
- * dans le classeur : on la déduit du même calendrier de semaines de DL (c'est
- * la seule référence de temps disponible par cours), pas d'une vraie date de
- * BEX. Cadence continue depuis la rentrée, pas remise à zéro à chaque période.
+ * Nombre de « moments BEX » déjà passés, d'après les vraies dates saisies par
+ * Laureline dans le classeur (ligne « Eval : » du bloc SAVOIR-FAIRE, cf.
+ * parser.js). Contrairement aux devoirs libres, les BEX n'avancent pas à un
+ * rythme régulier — c'est une vraie date par moment, pas une déduction.
  */
-export function bexMomentsElapsed(weekDates, when = new Date()) {
-  const dates = (weekDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
-  if (!dates.length) return 0;
-
-  const weeksElapsed = dates.filter((d) => d <= dayEnd(when)).length;
-  return weeksElapsed < 3 ? 0 : Math.floor((weeksElapsed - 1) / 2);
+export function bexMomentsElapsed(evalDates, when = new Date()) {
+  const dates = (evalDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
+  return dates.filter((d) => d <= dayEnd(when)).length;
 }
 
 /**
@@ -317,6 +308,11 @@ export function bexMomentsElapsed(weekDates, when = new Date()) {
  * unité, pour qu'un oubli isolé (absence, maladie) ne déclenche jamais
  * `behind-dl` à lui seul.
  *
+ * Validations et BEX différentes ne suivent PAS ce rythme régulier : elles
+ * sont plafonnées au nombre de « moments BEX » déjà passés (context.evalDates,
+ * cf. bexMomentsElapsed), quand ce calendrier est connu — sinon elles restent
+ * sur le rythme des devoirs libres, une approximation faute de mieux.
+ *
  * Renvoie `null` si rien ne peut être adouci (pas de calendrier connu, ou
  * période déjà terminée) : l'appelant retombe alors sur le comportement
  * habituel.
@@ -333,6 +329,12 @@ export function paceGapTo(target, student, thresholdsForPeriod, weekDates, perio
   // Droit à l'oubli d'UN devoir libre : tout le monde peut être absent ou
   // malade une fois sans que ça compte comme un retard.
   scaled.dl = Math.max(0, scaled.dl - 1);
+
+  if ((context.evalDates || []).length) {
+    const moments = bexMomentsElapsed(context.evalDates, context.when);
+    scaled.bexDiff = Math.min(scaled.bexDiff, moments);
+    scaled.validations = Math.min(scaled.validations, moments);
+  }
 
   // Validations et BEX différentes ne suivent PAS le rythme régulier des DL :
   // un moment BEX a lieu toutes les 2 semaines (cadence de Laureline), pas
