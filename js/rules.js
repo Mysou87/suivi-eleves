@@ -282,10 +282,17 @@ export function periodProgress(weekDates, period, when = new Date()) {
 /**
  * Écart vers `target` réduit à ce qui est déjà possible à ce stade de la
  * période (seuils de chaque compteur multipliés par `periodProgress`, arrondis
- * à l'inférieur pour rester indulgent). Sert à CHOISIR le conseil sans gronder
- * un élève qui n'a simplement pas encore eu l'occasion d'accumuler plus ; le
- * texte affiché continue, lui, à citer le vrai écart vers l'objectif final
- * (gapTo, pas ce résultat-ci).
+ * au SUPÉRIEUR). Sert à CHOISIR le conseil sans gronder un élève qui n'a
+ * simplement pas encore eu l'occasion d'accumuler plus ; le texte affiché
+ * continue, lui, à citer le vrai écart vers l'objectif final (gapTo, pas ce
+ * résultat-ci).
+ *
+ * ⚠️ Arrondi au supérieur, pas à l'inférieur : un seuil de fin de période
+ * arrondi vers le bas retombe à 0 tant que la période n'est pas terminée dès
+ * que le seuil est petit (1 ou 2, très courant pour les BEX différentes en
+ * P1) — un élève qui n'a validé AUCUNE BEX paraitrait alors « à l'heure »
+ * indéfiniment, ce qui n'est pas vrai : dès qu'il a eu l'occasion d'en passer
+ * une, il faut que ça compte.
  *
  * Renvoie `null` si rien ne peut être adouci (pas de calendrier connu, ou
  * période déjà terminée) : l'appelant retombe alors sur le comportement
@@ -298,7 +305,7 @@ export function paceGapTo(target, student, thresholdsForPeriod, weekDates, perio
 
   const scaled = {};
   COUNTERS.forEach((k) => {
-    scaled[k] = Math.floor((wanted[k] ?? 0) * progress);
+    scaled[k] = Math.ceil((wanted[k] ?? 0) * progress);
   });
 
   const result = gapTo(target, student, { [target]: scaled }, context);

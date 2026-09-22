@@ -266,10 +266,13 @@ check(
   1
 );
 
-// Objectif B (6/4/2/2/0 en P1) : à 0,25 de rythme, seuils réduits à 1/1/0/0/0.
-const onTrackStudent = makeStudent({ dl: 1, quiz: 1 });
-const paceOnTrack = paceGapTo('B', onTrackStudent, p1, WEEKS, 1, { ...ctx, when: '2026-09-14' });
-check('au rythme (1 DL, 1 quiz sur 8 semaines) : aucun écart au rythme', paceOnTrack, {});
+// Objectif B (6/4/2/2/0 en P1) : à 3 semaines écoulées sur 8 (rythme 0,375),
+// seuils arrondis au SUPÉRIEUR à 3/2/1/1/0 (une seule BEX suffit déjà à
+// satisfaire le rythme, mais il en faut au moins une — pas de faux « à
+// l'heure » avec 0 BEX comme avec l'arrondi à l'inférieur).
+const onTrackStudent = makeStudent({ dl: 3, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0] });
+const paceOnTrack = paceGapTo('B', onTrackStudent, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check('au rythme (3 DL, 2 quiz, 1 BEX sur 3 semaines/8) : aucun écart au rythme', paceOnTrack, {});
 check(
   'mais l\'écart réel vers B reste important (pas encore atteint)',
   Object.keys(gapTo('B', onTrackStudent, p1, ctx).gaps).length >= 3,
@@ -281,10 +284,10 @@ check(
   'on-pace'
 );
 
-// Même rythme, mais un compteur (quiz) n'a vraiment pas bougé : lui seul
+// Même rythme, mais un compteur (quiz) n'a vraiment pas suivi : lui seul
 // ressort, pas un « many-behind » sur l'ensemble.
-const laggingQuiz = makeStudent({ dl: 1 });
-const paceLagging = paceGapTo('B', laggingQuiz, p1, WEEKS, 1, { ...ctx, when: '2026-09-14' });
+const laggingQuiz = makeStudent({ dl: 3, quiz: 1, bex: [1, 0, 0, 0, 0, 0, 0, 0] });
+const paceLagging = paceGapTo('B', laggingQuiz, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
 check('un seul compteur réellement en retard sur le rythme', paceLagging, { quiz: 1 });
 check(
   'conseil ciblé sur les quiz, pas many-behind',
@@ -292,9 +295,15 @@ check(
   'behind-quiz'
 );
 
+// Une seule BEX exigée par le rythme (JS/S dès la P1) : 0 BEX validée ne peut
+// plus jamais passer pour « à l'heure » une fois que le rythme est positif.
+const noBexAtAll = makeStudent({ dl: 3, quiz: 2 });
+const paceNoBex = paceGapTo('B', noBexAtAll, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check('0 BEX validée détecté comme en retard dès que le rythme est positif', paceNoBex.bexDiff > 0, true);
+
 // Sans calendrier connu pour ce cours (import pas encore refait) : le
 // comportement historique (écart réel, non adouci) continue de s'appliquer.
-const paceUnknown = paceGapTo('B', laggingQuiz, p1, [], 1, { ...ctx, when: '2026-09-14' });
+const paceUnknown = paceGapTo('B', laggingQuiz, p1, [], 1, { ...ctx, when: '2026-09-21' });
 check('pas de calendrier connu → paceGapTo renvoie null', paceUnknown, null);
 check(
   'sans rythme calculé, comportement historique (many-behind) inchangé',
