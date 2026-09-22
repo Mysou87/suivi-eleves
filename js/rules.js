@@ -263,10 +263,21 @@ export function adviceKey(gap, student, options = {}) {
   const count = Object.values(g).filter((v) => v > 0).length;
 
   if (gap.reached) return options.atTop ? 'level-max' : 'target-reached';
-  // En tout début d'année, personne n'est vraiment « en retard » : le retard
-  // apparent sur les seuils vient juste de ne pas avoir encore commencé.
-  if (options.yearJustStarted) return 'period-start';
-  if (count >= 3) return 'many-behind';
+  // Tout début d'année : un élève qui n'a encore RIEN rendu n'est pas « en
+  // retard », il n'a juste pas commencé. On regarde ses compteurs réels, pas
+  // l'écart vers l'objectif : dès la 1re semaine, l'écart est presque toujours
+  // positif sur plusieurs compteurs (les seuils JS ne sont jamais à 0), donc un
+  // écart nul ne serait quasiment jamais vrai. Dès qu'un compteur bouge, le
+  // conseil spécifique redevient plus utile et plus vrai que ce message
+  // générique — on ne l'écrase donc pas.
+  const counters = gap.counters || {};
+  const nothingDoneYet = ['dl', 'quiz', 'validations', 'bexDiff', 'depassements'].every(
+    (k) => !counters[k]
+  );
+  if (options.yearJustStarted && nothingDoneYet) return 'period-start';
+  // Le côté « ça vient de commencer » adoucit seulement le cumul de retards
+  // (qui serait décourageant en semaine 2), pas les conseils ciblés ci-dessous.
+  if (count >= 3 && !options.yearJustStarted) return 'many-behind';
 
   if (g.bexDiff > 0 || gap.socleMissing.length) return 'need-new-bex';
   if (g.validations > 0) {

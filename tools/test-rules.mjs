@@ -223,9 +223,20 @@ check('7/9 : lancement en cours', yearJustStarted('2026-09-07'), true);
 check('30/9 : encore le lancement', yearJustStarted('2026-09-30'), true);
 check('1/10 : lancement terminé', yearJustStarted('2026-10-01'), false);
 check(
-  'même élève très en retard, mais pendant le lancement → period-start plutôt que many-behind',
+  'même élève très en retard, mais pendant le lancement → conseil ciblé (BEX) plutôt que many-behind',
   adviceKey(behind, makeStudent({ dl: 1 }), { yearJustStarted: true }),
+  'need-new-bex'
+);
+const freshStart = gapTo('B', makeStudent({}), p1, ctx);
+check(
+  'élève qui n\'a encore rien rendu, pendant le lancement → period-start',
+  adviceKey(freshStart, makeStudent({}), { yearJustStarted: true }),
   'period-start'
+);
+check(
+  'le même élève vide, hors fenêtre de lancement → many-behind (pas de faux period-start)',
+  adviceKey(freshStart, makeStudent({})),
+  'many-behind'
 );
 check(
   'objectif déjà atteint pendant le lancement → reste target-reached',
