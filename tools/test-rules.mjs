@@ -331,6 +331,24 @@ check(
   'need-new-bex'
 );
 
+// Cas réel rencontré (Camille Ermans) : à l'heure sur DL/quiz, une seule BEX
+// validée jusqu'ici — au rythme, le nombre de BEX différentes exigé (1) est
+// déjà atteint, mais pas le nombre de validations (2). « Repasser une BEX
+// déjà validée » n'aurait aucun sens avec une seule : il faut en tenter une
+// nouvelle, pas revalider l'unique déjà faite.
+const onlyOneBexOnPace = makeStudent({ dl: 3, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0], dep: 1 });
+const paceOnlyOneBex = paceGapTo('TB', onlyOneBexOnPace, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'au rythme : BEX différentes déjà bon, mais 1 validation manque encore',
+  paceOnlyOneBex,
+  { validations: 1 }
+);
+check(
+  'conseil : valider une nouvelle BEX, pas en repasser une (une seule validée jusqu\'ici)',
+  adviceKey(gapTo('TB', onlyOneBexOnPace, p1, ctx), onlyOneBexOnPace, { paceGaps: paceOnlyOneBex }),
+  'need-new-bex'
+);
+
 // Cas réel rencontré (Dadkhah, 6e Chimie) : à l'heure pour DL/quiz, il ne lui
 // manque QU'UNE BEX — validations et bexDiff manquent ensemble (une BEX
 // validée augmenterait les deux à la fois), ça ne doit compter que pour UN
