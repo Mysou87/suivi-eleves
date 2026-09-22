@@ -293,6 +293,45 @@ export function adviceKey(gap, student, options = {}) {
   return 'target-reached';
 }
 
+/**
+ * Ordre de priorité exact utilisé par adviceKey() : dès qu'une condition est
+ * vraie, les suivantes ne sont plus regardées. Recopié ici uniquement pour
+ * l'affichage (admin, onglet Conseils) — si adviceKey() change, penser à
+ * mettre ces deux constantes à jour.
+ */
+export const ADVICE_ORDER = [
+  'level-max',
+  'target-reached',
+  'period-start',
+  'many-behind',
+  'need-new-bex',
+  'missions-heavy',
+  'need-revalidation',
+  'behind-dl',
+  'behind-quiz',
+  'need-depassement',
+  'exam-condition',
+];
+
+/** condition de déclenchement de chaque conseil, en français, pour l'admin */
+export const ADVICE_CONDITIONS = {
+  'level-max': "Objectif Très bien atteint : il n'y a plus de palier au-dessus.",
+  'target-reached': 'Objectif atteint (autre que Très bien).',
+  'period-start':
+    "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 30 septembre.",
+  'many-behind':
+    '3 compteurs en retard ou plus, ET on est après le 30 septembre (avant cette date, un conseil plus précis prend le relais).',
+  'need-new-bex': "Il manque des BEX différentes, ou une BEX socle n'est pas encore validée.",
+  'missions-heavy':
+    "Il manque des validations, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",
+  'need-revalidation': 'Il manque des validations (hors cas « missions-heavy » ci-dessus).',
+  'behind-dl': 'Il manque des devoirs libres, et rien des conditions précédentes ne s\'applique.',
+  'behind-quiz': 'Il manque des quiz, et rien des conditions précédentes ne s\'applique.',
+  'need-depassement': 'Il manque des dépassements, et rien des conditions précédentes ne s\'applique.',
+  'exam-condition':
+    "Tous les compteurs sont bons, mais l'examen de juin est encore en attente ou insuffisant pour le niveau visé.",
+};
+
 /** textes par défaut, remplacés par ceux de la table `suivi_advice` */
 export const DEFAULT_ADVICE = {
   'behind-dl':

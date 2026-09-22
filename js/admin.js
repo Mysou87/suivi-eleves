@@ -30,6 +30,8 @@ import {
   yearJustStarted,
   describeGap,
   DEFAULT_ADVICE,
+  ADVICE_ORDER,
+  ADVICE_CONDITIONS,
 } from './rules.js';
 
 const $ = (id) => document.getElementById(id);
@@ -550,17 +552,20 @@ async function renderAdvice() {
   box.innerHTML = '';
 
   Object.entries(advice)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([key, body]) => {
+    .sort(([a], [b]) => ADVICE_ORDER.indexOf(a) - ADVICE_ORDER.indexOf(b))
+    .forEach(([key, body], i) => {
       const row = document.createElement('div');
       row.className = 'advice-row';
 
       const label = document.createElement('label');
       const name = document.createElement('code');
-      name.textContent = key;
+      name.textContent = `${i + 1}. ${key}`;
+      const condition = document.createElement('p');
+      condition.className = 'muted small advice-condition';
+      condition.textContent = ADVICE_CONDITIONS[key] || '';
       const area = document.createElement('textarea');
       area.value = body;
-      label.append(name, area);
+      label.append(name, condition, area);
 
       const save = document.createElement('button');
       save.type = 'button';

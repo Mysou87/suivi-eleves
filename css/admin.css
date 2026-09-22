@@ -64,6 +64,7 @@ tr.top td { background: #f4faf5; }
 
 .advice-row { margin-bottom: 1.25rem; }
 .advice-row code { font-size: .8rem; color: var(--muted); }
+.advice-condition { margin: .2rem 0 .4rem; }
 
 textarea {
   font: inherit;
