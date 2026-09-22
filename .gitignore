@@ -12,6 +12,10 @@ js/config.local.js
 *.xls
 .~lock.*
 
+# Scripts de diagnostic ponctuels (créés et supprimés dans la même session,
+# ne devraient normalement jamais atterrir ici — filet de sécurité)
+tools/_tmp-*
+
 # Divers
 .DS_Store
 Thumbs.db
