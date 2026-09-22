@@ -12,6 +12,7 @@ import {
   loadSnapshots,
   saveTarget,
   studentFromCounters,
+  markSeen,
 } from './data.js';
 import {
   LEVELS,
@@ -114,6 +115,7 @@ $('login-form').addEventListener('submit', async (event) => {
   }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ firstName, lastName, className }));
+  markSeen(db, result.student.id);
   await openDashboard(result.student);
 });
 

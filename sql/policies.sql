@@ -91,6 +91,19 @@ drop policy if exists anon_all on suivi_snapshots;
 drop policy if exists anon_read on suivi_snapshots;
 create policy anon_read on suivi_snapshots for select to anon using (true);
 
+-- ---------------------------------------- seule écriture permise : je me connecte
+
+-- L'élève écrit la date à chaque connexion (upsert) : une policy INSERT et
+-- une policy UPDATE, comme pour l'objectif. Pas de SELECT pour l'anon : seule
+-- l'admin (clé service_role, hors RLS) lit cette table.
+
+alter table suivi_logins enable row level security;
+drop policy if exists anon_mark_seen on suivi_logins;
+drop policy if exists anon_update_seen on suivi_logins;
+
+create policy anon_mark_seen on suivi_logins for insert to anon with check (true);
+create policy anon_update_seen on suivi_logins for update to anon using (true) with check (true);
+
 -- ------------------------------------- seule écriture permise : l'objectif visé
 
 -- L'élève enregistre son objectif avec un `upsert` : PostgreSQL exige alors
@@ -111,7 +124,8 @@ create policy anon_change_target on suivi_targets for update to anon using (true
 --
 -- À exécuter pour contrôler le résultat : chaque table `suivi_*` doit avoir
 -- RLS actif et la seule commande « SELECT », sauf `suivi_targets` qui a en plus
--- INSERT et UPDATE.
+-- INSERT et UPDATE, et `suivi_logins` qui n'a QUE INSERT et UPDATE (aucun
+-- SELECT pour l'anon).
 
 select c.relname                                  as table,
        c.relrowsecurity                           as rls_actif,

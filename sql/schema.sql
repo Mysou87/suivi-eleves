@@ -149,6 +149,13 @@ create table if not exists suivi_targets (
   unique (student_id, course_id, period)
 );
 
+-- Dernière connexion d'un élève à l'app, tous cours confondus. Écrite par
+-- l'écran élève lui-même à chaque connexion réussie ; lue par l'admin.
+create table if not exists suivi_logins (
+  student_id   uuid primary key references students(id) on delete cascade,
+  last_seen_at timestamptz not null default now()
+);
+
 -- Bulletins figés au conseil de guidance (20/11, 19/3, 29/6). Une fois écrits,
 -- les imports suivants ne les modifient plus.
 create table if not exists suivi_snapshots (

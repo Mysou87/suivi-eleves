@@ -72,6 +72,21 @@ export async function findStudent(db, { firstName, lastName, className }) {
   return { notFound: true };
 }
 
+/**
+ * Marque la connexion d'un élève, pour que l'admin voie sa dernière visite.
+ * Best-effort : une erreur (RLS pas encore en place, hors ligne…) ne doit
+ * jamais empêcher l'élève de voir son tableau de bord.
+ */
+export async function markSeen(db, studentId) {
+  try {
+    await db
+      .from('suivi_logins')
+      .upsert({ student_id: studentId, last_seen_at: new Date().toISOString() }, { onConflict: 'student_id' });
+  } catch {
+    // silencieux, voir commentaire ci-dessus
+  }
+}
+
 /** classes disponibles, pour la liste déroulante de connexion */
 export async function loadClasses(db) {
   const { data, error } = await db.from('students').select('class_name');
@@ -223,7 +238,7 @@ export async function loadHistory(db, studentId, courseId) {
 export async function loadAdminOverview(db, when = new Date()) {
   const period = currentPeriod(when);
 
-  const [coursesRes, countersRes, studentsRes, thresholdsRes, socleRes, targetsRes, enrollmentsRes] =
+  const [coursesRes, countersRes, studentsRes, thresholdsRes, socleRes, targetsRes, enrollmentsRes, loginsRes] =
     await Promise.all([
       db.from('suivi_courses').select('*').order('sheet_name'),
       db.from('suivi_counters').select('*'),
@@ -232,6 +247,7 @@ export async function loadAdminOverview(db, when = new Date()) {
       db.from('suivi_socle').select('*'),
       db.from('suivi_targets').select('student_id, course_id, target_level').eq('period', period),
       db.from('suivi_enrollments').select('student_id, course_id').eq('is_active', true),
+      db.from('suivi_logins').select('student_id, last_seen_at'),
     ]);
 
   const error = [coursesRes, countersRes, studentsRes].find((r) => r.error)?.error;
@@ -240,6 +256,9 @@ export async function loadAdminOverview(db, when = new Date()) {
   const studentById = new Map((studentsRes.data || []).map((s) => [s.id, s]));
   const targetByPair = new Map(
     (targetsRes.data || []).map((t) => [`${t.student_id}|${t.course_id}`, t.target_level])
+  );
+  const lastSeenByStudent = new Map(
+    (loginsRes.data || []).map((l) => [l.student_id, l.last_seen_at])
   );
   // Un élève parti (départ, changement de groupe) garde ses compteurs en base
   // pour l'historique, mais ne doit plus apparaitre comme actif dans ce cours.
@@ -260,6 +279,7 @@ export async function loadAdminOverview(db, when = new Date()) {
         counterRow,
         student_model: studentFromCounters(counterRow),
         target: targetByPair.get(`${counterRow.student_id}|${course.id}`) || null,
+        lastSeen: lastSeenByStudent.get(counterRow.student_id) || null,
       }))
       .filter((r) => r.student)
       .sort((a, b) => a.student.last_name.localeCompare(b.student.last_name));

@@ -440,7 +440,7 @@ async function renderOverview() {
       table.innerHTML =
         '<thead><tr><th>Élève</th><th>Classe</th>' +
         COUNTERS.map((k) => `<th class="num">${shortLabel(k)}</th>`).join('') +
-        '<th>Niveau</th><th>Objectif</th><th></th></tr></thead>';
+        '<th>Niveau</th><th>Objectif</th><th>Dernière connexion</th><th></th></tr></thead>';
 
       const body = document.createElement('tbody');
       let shown = 0;
@@ -470,6 +470,7 @@ async function renderOverview() {
           COUNTERS.map((k) => `<td class="num">${counters[k] ?? 0}</td>`).join('') +
           `<td><span class="pill ${assessment.level}">${LEVEL_LABELS[assessment.level]}</span></td>` +
           `<td>${entry.target ? LEVEL_LABELS[entry.target] : '—'}</td>` +
+          `<td>${entry.lastSeen ? formatWhen(entry.lastSeen) : 'jamais'}</td>` +
           `<td class="flag">${missionsHeavy ? 'surtout des missions' : ''}` +
           `${assessment.pendingExam ? ' examen attendu' : ''}</td>`;
         body.append(row);
