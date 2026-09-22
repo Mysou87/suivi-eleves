@@ -312,6 +312,25 @@ const twoDlMissing = makeStudent({ dl: 1, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0]
 const paceTwoDlMissing = paceGapTo('B', twoDlMissing, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
 check('2 devoirs libres manquants au rythme : toujours signalé', paceTwoDlMissing.dl > 0, true);
 
+// Aucun devoir libre rendu doit primer sur tout, BEX comprises : c'est le
+// plus simple et le plus urgent à rattraper.
+const zeroDl = makeStudent({ dl: 0, quiz: 2 });
+const paceZeroDl = paceGapTo('B', zeroDl, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'aucun DL rendu, même avec des BEX qui manquent aussi → behind-dl prioritaire',
+  adviceKey(gapTo('B', zeroDl, p1, ctx), zeroDl, { paceGaps: paceZeroDl }),
+  'behind-dl'
+);
+// Un simple retard partiel sur les DL (pas zéro) ne doit PAS voler la priorité
+// aux BEX : le passe-devant ne vaut que pour l'absence totale.
+const partialDl = makeStudent({ dl: 1, quiz: 2 });
+const pacePartialDl = paceGapTo('B', partialDl, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'DL entamés mais pas à zéro, BEX manquantes → need-new-bex garde la priorité',
+  adviceKey(gapTo('B', partialDl, p1, ctx), partialDl, { paceGaps: pacePartialDl }),
+  'need-new-bex'
+);
+
 // Cas réel rencontré (Dadkhah, 6e Chimie) : à l'heure pour DL/quiz, il ne lui
 // manque QU'UNE BEX — validations et bexDiff manquent ensemble (une BEX
 // validée augmenterait les deux à la fois), ça ne doit compter que pour UN

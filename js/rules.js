@@ -354,6 +354,11 @@ export function adviceKey(gap, student, options = {}) {
   // (qui serait décourageant en semaine 2), pas les conseils ciblés ci-dessous.
   if (domains >= 3 && !options.yearJustStarted) return 'many-behind';
 
+  // Ne rendre AUCUN devoir libre passe avant tout le reste, BEX comprises :
+  // c'est le plus simple et le plus urgent à rattraper, et ça ne demande pas
+  // de préparation contrairement à une BEX.
+  if (g.dl > 0 && !counters.dl) return 'behind-dl';
+
   if (g.bexDiff > 0 || gap.socleMissing.length) return 'need-new-bex';
   if (g.validations > 0) {
     const c = gap.counters;
@@ -383,10 +388,10 @@ export const ADVICE_ORDER = [
   'target-reached',
   'period-start',
   'many-behind',
+  'behind-dl',
   'need-new-bex',
   'missions-heavy',
   'need-revalidation',
-  'behind-dl',
   'behind-quiz',
   'need-depassement',
   'exam-condition',
@@ -408,11 +413,12 @@ export const ADVICE_CONDITIONS = {
     "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
   'many-behind':
     '3 domaines en retard (au rythme) ou plus — DL, quiz, validations/BEX différentes ensemble, dépassements —, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
-  'need-new-bex': "Il manque des BEX différentes au rythme, ou une BEX socle n'est pas encore validée (le socle n'est jamais adouci).",
+  'behind-dl':
+    "Deux déclencheurs distincts, sous ce même nom : (1) AUCUN devoir libre rendu (compteur réel à 0), prioritaire sur tout le reste y compris les BEX — c'est le plus simple et le plus urgent à rattraper ; (2) plus bas dans la priorité, il manque des devoirs libres au rythme mais rien des conditions au-dessus ne s'applique.",
+  'need-new-bex': "Il manque des BEX différentes au rythme, ou une BEX socle n'est pas encore validée (le socle n'est jamais adouci) — sauf si l'élève ne rend AUCUN devoir libre (voir behind-dl, prioritaire dans ce cas).",
   'missions-heavy':
     "Il manque des validations au rythme, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",
   'need-revalidation': 'Il manque des validations au rythme (hors cas « missions-heavy » ci-dessus).',
-  'behind-dl': 'Il manque des devoirs libres au rythme, et rien des conditions précédentes ne s\'applique.',
   'behind-quiz': 'Il manque des quiz au rythme, et rien des conditions précédentes ne s\'applique.',
   'need-depassement': 'Il manque des dépassements au rythme, et rien des conditions précédentes ne s\'applique.',
   'exam-condition':
