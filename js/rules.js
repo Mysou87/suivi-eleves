@@ -280,6 +280,25 @@ export function periodProgress(weekDates, period, when = new Date()) {
 }
 
 /**
+ * Nombre de « moments BEX » déjà passés, d'après la cadence donnée par
+ * Laureline : un moment toutes les 2 semaines, sans compter les 2 premières
+ * semaines du cours (le temps de vraiment démarrer). Donc le 1er moment tombe
+ * à la semaine 3, le 2e à la semaine 5, etc.
+ *
+ * Contrairement aux devoirs libres, aucune date de moment BEX n'est tracée
+ * dans le classeur : on la déduit du même calendrier de semaines de DL (c'est
+ * la seule référence de temps disponible par cours), pas d'une vraie date de
+ * BEX. Cadence continue depuis la rentrée, pas remise à zéro à chaque période.
+ */
+export function bexMomentsElapsed(weekDates, when = new Date()) {
+  const dates = (weekDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
+  if (!dates.length) return 0;
+
+  const weeksElapsed = dates.filter((d) => d <= dayEnd(when)).length;
+  return weeksElapsed < 3 ? 0 : Math.floor((weeksElapsed - 1) / 2);
+}
+
+/**
  * Écart vers `target` réduit à ce qui est déjà possible à ce stade de la
  * période (seuils de chaque compteur multipliés par `periodProgress`, arrondis
  * au SUPÉRIEUR). Sert à CHOISIR le conseil sans gronder un élève qui n'a
@@ -314,6 +333,15 @@ export function paceGapTo(target, student, thresholdsForPeriod, weekDates, perio
   // Droit à l'oubli d'UN devoir libre : tout le monde peut être absent ou
   // malade une fois sans que ça compte comme un retard.
   scaled.dl = Math.max(0, scaled.dl - 1);
+
+  // Validations et BEX différentes ne suivent PAS le rythme régulier des DL :
+  // un moment BEX a lieu toutes les 2 semaines (cadence de Laureline), pas
+  // chaque semaine. Les plafonner au nombre de moments déjà passés plutôt
+  // qu'à une fraction du seuil de fin de période, sinon on exige plus de
+  // validations qu'il n'y a eu d'occasions d'en obtenir.
+  const moments = bexMomentsElapsed(weekDates, context.when);
+  scaled.bexDiff = Math.min(scaled.bexDiff, moments);
+  scaled.validations = Math.min(scaled.validations, moments);
 
   const result = gapTo(target, student, { [target]: scaled }, context);
   return result.gaps;
