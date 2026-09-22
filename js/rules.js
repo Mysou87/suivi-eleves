@@ -324,7 +324,11 @@ export function adviceKey(gap, student, options = {}) {
   // n'a simplement pas encore eu l'occasion d'accumuler plus. Absent (pas de
   // calendrier connu), on retombe sur l'écart réel — comportement inchangé.
   const g = options.paceGaps || gap.gaps || {};
-  const count = Object.values(g).filter((v) => v > 0).length;
+  // Pour compter les « domaines » en retard (many-behind), validations et BEX
+  // différentes comptent pour UN seul domaine : valider une BEX augmente les
+  // deux à la fois, donc les compter séparément doublait artificiellement le
+  // retard d'un élève à qui il ne manque qu'une seule BEX.
+  const domains = ['dl', 'quiz', 'depassements'].filter((k) => g[k] > 0).length + (g.validations > 0 || g.bexDiff > 0 ? 1 : 0);
 
   if (gap.reached) return options.atTop ? 'level-max' : 'target-reached';
   // Tout début d'année : un élève qui n'a encore RIEN rendu n'est pas « en
@@ -341,7 +345,7 @@ export function adviceKey(gap, student, options = {}) {
   if (options.yearJustStarted && nothingDoneYet) return 'period-start';
   // Le côté « ça vient de commencer » adoucit seulement le cumul de retards
   // (qui serait décourageant en semaine 2), pas les conseils ciblés ci-dessous.
-  if (count >= 3 && !options.yearJustStarted) return 'many-behind';
+  if (domains >= 3 && !options.yearJustStarted) return 'many-behind';
 
   if (g.bexDiff > 0 || gap.socleMissing.length) return 'need-new-bex';
   if (g.validations > 0) {
@@ -396,7 +400,7 @@ export const ADVICE_CONDITIONS = {
   'period-start':
     "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
   'many-behind':
-    '3 compteurs en retard (au rythme) ou plus, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
+    '3 domaines en retard (au rythme) ou plus — DL, quiz, validations/BEX différentes ensemble, dépassements —, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
   'need-new-bex': "Il manque des BEX différentes au rythme, ou une BEX socle n'est pas encore validée (le socle n'est jamais adouci).",
   'missions-heavy':
     "Il manque des validations au rythme, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",

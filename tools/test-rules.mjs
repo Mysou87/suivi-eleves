@@ -301,6 +301,28 @@ const noBexAtAll = makeStudent({ dl: 3, quiz: 2 });
 const paceNoBex = paceGapTo('B', noBexAtAll, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
 check('0 BEX validée détecté comme en retard dès que le rythme est positif', paceNoBex.bexDiff > 0, true);
 
+// Cas réel rencontré (Dadkhah, 6e Chimie) : à l'heure pour DL/quiz, il ne lui
+// manque QU'UNE BEX — validations et bexDiff manquent ensemble (une BEX
+// validée augmenterait les deux à la fois), ça ne doit compter que pour UN
+// domaine en retard, pas deux. Avec un dépassement en plus (2 domaines), on
+// reste sous le seuil de many-behind : le conseil doit rester ciblé sur la BEX.
+const missingOnlyBex = makeStudent({ dl: 3, quiz: 2 });
+const paceMissingOnlyBex = paceGapTo('TB', missingOnlyBex, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'à l\'heure sur DL/quiz, seule la BEX manque (validations + bexDiff + dépassement = 2 domaines, pas 3)',
+  adviceKey(gapTo('TB', missingOnlyBex, p1, ctx), missingOnlyBex, { paceGaps: paceMissingOnlyBex }),
+  'need-new-bex'
+);
+// Un 3e domaine réellement différent (les DL, cette fois) fait bien basculer
+// en many-behind : le regroupement ne masque pas un vrai retard sur 3 fronts.
+const trulyBehindOnThree = makeStudent({ dl: 2, quiz: 2 });
+const paceTrulyBehind = paceGapTo('TB', trulyBehindOnThree, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'un vrai 3e domaine (DL) fait toujours basculer en many-behind',
+  adviceKey(gapTo('TB', trulyBehindOnThree, p1, ctx), trulyBehindOnThree, { paceGaps: paceTrulyBehind }),
+  'many-behind'
+);
+
 // Sans calendrier connu pour ce cours (import pas encore refait) : le
 // comportement historique (écart réel, non adouci) continue de s'appliquer.
 const paceUnknown = paceGapTo('B', laggingQuiz, p1, [], 1, { ...ctx, when: '2026-09-21' });
