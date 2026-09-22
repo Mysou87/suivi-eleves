@@ -218,10 +218,10 @@ check('rien après TB', nextLevel('TB'), null);
 const behind = gapTo('B', makeStudent({ dl: 1 }), p1, ctx);
 check('trois compteurs en retard → conseil de priorisation', adviceKey(behind, makeStudent({ dl: 1 })), 'many-behind');
 
-rule('Lancement de l\'année (jusqu\'au 30 septembre)');
+rule('Lancement de l\'année (jusqu\'au 15 septembre)');
 check('7/9 : lancement en cours', yearJustStarted('2026-09-07'), true);
-check('30/9 : encore le lancement', yearJustStarted('2026-09-30'), true);
-check('1/10 : lancement terminé', yearJustStarted('2026-10-01'), false);
+check('15/9 : encore le lancement', yearJustStarted('2026-09-15'), true);
+check('16/9 : lancement terminé', yearJustStarted('2026-09-16'), false);
 check(
   'même élève très en retard, mais pendant le lancement → conseil ciblé (BEX) plutôt que many-behind',
   adviceKey(behind, makeStudent({ dl: 1 }), { yearJustStarted: true }),

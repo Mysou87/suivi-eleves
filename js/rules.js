@@ -88,7 +88,7 @@ export function periodByNumber(n) {
  * encore eu le temps de se lancer, quel que soit leur retard apparent sur les
  * seuils. À mettre à jour chaque année, en même temps que PERIODS.
  */
-export const YEAR_START_CUTOFF = '2026-09-30';
+export const YEAR_START_CUTOFF = '2026-09-15';
 
 export function yearJustStarted(when = new Date()) {
   return toDate(when) <= dayEnd(YEAR_START_CUTOFF);
@@ -318,9 +318,9 @@ export const ADVICE_CONDITIONS = {
   'level-max': "Objectif Très bien atteint : il n'y a plus de palier au-dessus.",
   'target-reached': 'Objectif atteint (autre que Très bien).',
   'period-start':
-    "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 30 septembre.",
+    "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
   'many-behind':
-    '3 compteurs en retard ou plus, ET on est après le 30 septembre (avant cette date, un conseil plus précis prend le relais).',
+    '3 compteurs en retard ou plus, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
   'need-new-bex': "Il manque des BEX différentes, ou une BEX socle n'est pas encore validée.",
   'missions-heavy':
     "Il manque des validations, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",
