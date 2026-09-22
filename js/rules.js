@@ -294,6 +294,10 @@ export function periodProgress(weekDates, period, when = new Date()) {
  * indéfiniment, ce qui n'est pas vrai : dès qu'il a eu l'occasion d'en passer
  * une, il faut que ça compte.
  *
+ * Tolérance d'un devoir libre : le seuil de DL au rythme est réduit d'une
+ * unité, pour qu'un oubli isolé (absence, maladie) ne déclenche jamais
+ * `behind-dl` à lui seul.
+ *
  * Renvoie `null` si rien ne peut être adouci (pas de calendrier connu, ou
  * période déjà terminée) : l'appelant retombe alors sur le comportement
  * habituel.
@@ -307,6 +311,9 @@ export function paceGapTo(target, student, thresholdsForPeriod, weekDates, perio
   COUNTERS.forEach((k) => {
     scaled[k] = Math.ceil((wanted[k] ?? 0) * progress);
   });
+  // Droit à l'oubli d'UN devoir libre : tout le monde peut être absent ou
+  // malade une fois sans que ça compte comme un retard.
+  scaled.dl = Math.max(0, scaled.dl - 1);
 
   const result = gapTo(target, student, { [target]: scaled }, context);
   return result.gaps;

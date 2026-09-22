@@ -301,6 +301,17 @@ const noBexAtAll = makeStudent({ dl: 3, quiz: 2 });
 const paceNoBex = paceGapTo('B', noBexAtAll, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
 check('0 BEX validée détecté comme en retard dès que le rythme est positif', paceNoBex.bexDiff > 0, true);
 
+// Cas réel rencontré (Ilhan, 6e Chimie) : droit à l'oubli d'UN devoir libre —
+// un seul DL manquant au rythme ne doit jamais, à lui seul, déclencher
+// behind-dl (absence/maladie possible une fois). Deux DL manquants restent
+// signalés : la tolérance ne doit pas devenir un blanc-seing.
+const oneDlMissing = makeStudent({ dl: 2, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0] });
+const paceOneDlMissing = paceGapTo('B', oneDlMissing, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check('1 devoir libre manquant au rythme : pardonné, aucun écart', paceOneDlMissing.dl ?? 0, 0);
+const twoDlMissing = makeStudent({ dl: 1, quiz: 2, bex: [1, 0, 0, 0, 0, 0, 0, 0] });
+const paceTwoDlMissing = paceGapTo('B', twoDlMissing, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check('2 devoirs libres manquants au rythme : toujours signalé', paceTwoDlMissing.dl > 0, true);
+
 // Cas réel rencontré (Dadkhah, 6e Chimie) : à l'heure pour DL/quiz, il ne lui
 // manque QU'UNE BEX — validations et bexDiff manquent ensemble (une BEX
 // validée augmenterait les deux à la fois), ça ne doit compter que pour UN
@@ -313,9 +324,10 @@ check(
   adviceKey(gapTo('TB', missingOnlyBex, p1, ctx), missingOnlyBex, { paceGaps: paceMissingOnlyBex }),
   'need-new-bex'
 );
-// Un 3e domaine réellement différent (les DL, cette fois) fait bien basculer
-// en many-behind : le regroupement ne masque pas un vrai retard sur 3 fronts.
-const trulyBehindOnThree = makeStudent({ dl: 2, quiz: 2 });
+// Un 3e domaine réellement différent (les DL, cette fois, au-delà de la
+// tolérance d'un devoir libre oublié) fait bien basculer en many-behind : le
+// regroupement ne masque pas un vrai retard sur 3 fronts.
+const trulyBehindOnThree = makeStudent({ dl: 1, quiz: 2 });
 const paceTrulyBehind = paceGapTo('TB', trulyBehindOnThree, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
 check(
   'un vrai 3e domaine (DL) fait toujours basculer en many-behind',
