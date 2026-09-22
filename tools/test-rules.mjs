@@ -225,9 +225,9 @@ check('7/9 : lancement en cours', yearJustStarted('2026-09-07'), true);
 check('15/9 : encore le lancement', yearJustStarted('2026-09-15'), true);
 check('16/9 : lancement terminé', yearJustStarted('2026-09-16'), false);
 check(
-  'même élève très en retard, mais pendant le lancement → conseil ciblé (BEX) plutôt que many-behind',
+  'même élève très en retard, mais pendant le lancement → conseil ciblé (quiz à zéro) plutôt que many-behind',
   adviceKey(behind, makeStudent({ dl: 1 }), { yearJustStarted: true }),
-  'need-new-bex'
+  'behind-quiz'
 );
 const freshStart = gapTo('B', makeStudent({}), p1, ctx);
 check(
@@ -328,6 +328,22 @@ const pacePartialDl = paceGapTo('B', partialDl, p1, WEEKS, 1, { ...ctx, when: '2
 check(
   'DL entamés mais pas à zéro, BEX manquantes → need-new-bex garde la priorité',
   adviceKey(gapTo('B', partialDl, p1, ctx), partialDl, { paceGaps: pacePartialDl }),
+  'need-new-bex'
+);
+
+// Même règle pour les quiz : aucun quiz réussi doit primer sur les BEX.
+const zeroQuiz = makeStudent({ dl: 2, quiz: 0 });
+const paceZeroQuiz = paceGapTo('B', zeroQuiz, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'aucun quiz réussi, même avec des BEX qui manquent aussi → behind-quiz prioritaire',
+  adviceKey(gapTo('B', zeroQuiz, p1, ctx), zeroQuiz, { paceGaps: paceZeroQuiz }),
+  'behind-quiz'
+);
+const partialQuiz = makeStudent({ dl: 2, quiz: 1 });
+const pacePartialQuiz = paceGapTo('B', partialQuiz, p1, WEEKS, 1, { ...ctx, when: '2026-09-21' });
+check(
+  'quiz entamés mais pas à zéro, BEX manquantes → need-new-bex garde la priorité',
+  adviceKey(gapTo('B', partialQuiz, p1, ctx), partialQuiz, { paceGaps: pacePartialQuiz }),
   'need-new-bex'
 );
 
