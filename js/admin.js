@@ -483,6 +483,14 @@ async function renderOverview() {
         // valeurs insérées dans le texte.
         const target = entry.target || nextLevel(assessment.level) || 'TB';
         const gap = gapTo(target, entry.student_model, levels, context);
+        // Calculé une seule fois, réutilisé à la fois pour le choix du
+        // conseil et pour colorer chaque compteur au rythme (vert = à jour,
+        // rouge = en retard, ni l'un ni l'autre si le calendrier du cours
+        // n'est pas encore connu — pas de couleur trompeuse dans ce cas).
+        const paceGaps = gap.reached
+          ? null
+          : paceGapTo(target, entry.student_model, levels, course.dl_week_dates, period, context);
+
         let adviceKeyShown;
         let adviceText;
         if (gap.reached) {
@@ -500,7 +508,6 @@ async function renderOverview() {
           }
         } else {
           const atTop = target === 'TB';
-          const paceGaps = paceGapTo(target, entry.student_model, levels, course.dl_week_dates, period, context);
           adviceKeyShown = adviceKey(gap, entry.student_model, {
             atTop,
             yearJustStarted: yearJustStarted(),
@@ -514,12 +521,18 @@ async function renderOverview() {
           });
         }
 
+        const counterCell = (k) => {
+          const value = counters[k] ?? 0;
+          if (gap.reached) return `<td class="num ok">${value}</td>`;
+          if (!paceGaps) return `<td class="num">${value}</td>`;
+          return `<td class="num ${paceGaps[k] > 0 ? 'late' : 'ok'}">${value}</td>`;
+        };
+
         const row = document.createElement('tr');
-        row.className = behind ? 'behind' : assessment.level === 'TB' ? 'top' : '';
         row.innerHTML =
           `<td>${escape(entry.student.last_name)}, ${escape(entry.student.first_name)}</td>` +
           `<td>${escape(entry.student.class_name || '—')}</td>` +
-          COUNTERS.map((k) => `<td class="num">${counters[k] ?? 0}</td>`).join('') +
+          COUNTERS.map(counterCell).join('') +
           `<td><span class="pill ${assessment.level}">${LEVEL_LABELS[assessment.level]}</span></td>` +
           `<td>${entry.target ? LEVEL_LABELS[entry.target] : '—'}</td>` +
           `<td class="advice-cell" title="${escape(adviceText)}"><code>${escape(adviceKeyShown)}</code></td>` +

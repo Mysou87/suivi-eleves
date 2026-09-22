@@ -38,8 +38,11 @@ th, td {
 th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-tr.behind td { background: #fdf5f2; }
-tr.top td { background: #f4faf5; }
+/* Un compteur à la fois : vert s'il est à jour au rythme réel du cours,
+   rouge s'il est en retard. Neutre (pas de couleur) si le calendrier du
+   cours n'est pas encore connu — pas de rouge/vert trompeur dans ce cas. */
+td.num.ok { background: #eaf5ec; color: #2f6b3f; }
+td.num.late { background: #fbeae5; color: #a33f2a; }
 
 .table-scroll { overflow-x: auto; }
 
