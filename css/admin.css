@@ -59,6 +59,9 @@ tr.top td { background: #f4faf5; }
 
 .flag { color: var(--warn); font-size: .8rem; }
 
+.advice-cell { cursor: help; }
+.advice-cell code { font-size: .8rem; color: var(--muted); }
+
 .advice-row { margin-bottom: 1.25rem; }
 .advice-row code { font-size: .8rem; color: var(--muted); }
 

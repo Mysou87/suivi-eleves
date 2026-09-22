@@ -25,10 +25,21 @@ import {
   currentPeriod,
   periodByNumber,
   PERIODS,
+  adviceKey,
+  nextLevel,
+  yearJustStarted,
+  describeGap,
+  DEFAULT_ADVICE,
 } from './rules.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { parsed: null, fileName: null, overview: null };
+const state = { parsed: null, fileName: null, overview: null, advice: null };
+
+function fill(template, values) {
+  return String(template || '').replace(/\{(\w+)\}/g, (_, key) =>
+    values[key] === undefined ? '' : String(values[key])
+  );
+}
 
 // --------------------------------------------------------------------- accès
 
@@ -409,7 +420,9 @@ async function renderOverview() {
   const box = $('overview');
   if (!state.overview) {
     box.textContent = 'Chargement…';
-    state.overview = await loadAdminOverview(db);
+    const [overview, advice] = await Promise.all([loadAdminOverview(db), loadAdvice(db)]);
+    state.overview = overview;
+    state.advice = { ...DEFAULT_ADVICE, ...advice };
     const select = $('course-filter');
     select.innerHTML = '<option value="">Tous les cours</option>';
     state.overview.courses.forEach((course) => {
@@ -440,7 +453,7 @@ async function renderOverview() {
       table.innerHTML =
         '<thead><tr><th>Élève</th><th>Classe</th>' +
         COUNTERS.map((k) => `<th class="num">${shortLabel(k)}</th>`).join('') +
-        '<th>Niveau</th><th>Objectif</th><th>Dernière connexion</th><th></th></tr></thead>';
+        '<th>Niveau</th><th>Objectif</th><th>Conseil affiché</th><th>Dernière connexion</th><th></th></tr></thead>';
 
       const body = document.createElement('tbody');
       let shown = 0;
@@ -462,6 +475,37 @@ async function renderOverview() {
         const missionsHeavy =
           counters.missions >= 3 && counters.bexValidations <= counters.bexDiff;
 
+        // Reproduit exactement ce que l'élève voit sur son écran (app.js,
+        // renderGap) : même cible par défaut, même choix de conseil, mêmes
+        // valeurs insérées dans le texte.
+        const target = entry.target || nextLevel(assessment.level) || 'TB';
+        const gap = gapTo(target, entry.student_model, levels, context);
+        let adviceKeyShown;
+        let adviceText;
+        if (gap.reached) {
+          const after = nextLevel(target);
+          if (after) {
+            const nextGap = gapTo(after, entry.student_model, levels, context);
+            adviceKeyShown = 'target-reached';
+            adviceText = fill(state.advice['target-reached'], {
+              next: LEVEL_LABELS[after],
+              ecart: describeGap(nextGap.gaps) || 'plus rien, tu y es déjà',
+            });
+          } else {
+            adviceKeyShown = 'level-max';
+            adviceText = state.advice['level-max'];
+          }
+        } else {
+          const atTop = target === 'TB';
+          adviceKeyShown = adviceKey(gap, entry.student_model, { atTop, yearJustStarted: yearJustStarted() });
+          const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
+          adviceText = fill(state.advice[adviceKeyShown] || '', {
+            X: biggest ? biggest[1] : '',
+            next: LEVEL_LABELS[nextLevel(target) || 'TB'],
+            ecart: describeGap(gap.gaps),
+          });
+        }
+
         const row = document.createElement('tr');
         row.className = behind ? 'behind' : assessment.level === 'TB' ? 'top' : '';
         row.innerHTML =
@@ -470,6 +514,7 @@ async function renderOverview() {
           COUNTERS.map((k) => `<td class="num">${counters[k] ?? 0}</td>`).join('') +
           `<td><span class="pill ${assessment.level}">${LEVEL_LABELS[assessment.level]}</span></td>` +
           `<td>${entry.target ? LEVEL_LABELS[entry.target] : '—'}</td>` +
+          `<td class="advice-cell" title="${escape(adviceText)}"><code>${escape(adviceKeyShown)}</code></td>` +
           `<td>${entry.lastSeen ? formatWhen(entry.lastSeen) : 'jamais'}</td>` +
           `<td class="flag">${missionsHeavy ? 'surtout des missions' : ''}` +
           `${assessment.pendingExam ? ' examen attendu' : ''}</td>`;
