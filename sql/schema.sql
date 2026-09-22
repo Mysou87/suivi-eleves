@@ -29,8 +29,14 @@ create table if not exists suivi_courses (
   group_letter  text,                        -- A, B, C… ou null
   teacher       text not null default 'LVO',
   is_active     boolean not null default true,
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  -- Calendrier réel des semaines de devoirs libres de ce cours (dates ISO,
+  -- congés/décloisonnements déjà exclus) : sert à adapter les conseils au
+  -- rythme réellement possible plutôt qu'au seuil de fin de période.
+  dl_week_dates jsonb not null default '[]'
 );
+
+alter table suivi_courses add column if not exists dl_week_dates jsonb not null default '[]';
 
 -- Correspondance des libellés quand ils diffèrent d'une feuille à l'autre
 -- (onglet « 4e Option » → « 4e Option Sciences » dans la feuille Liste).
@@ -202,7 +208,9 @@ insert into suivi_advice (key, body) values
   ('level-max',
    'Tu as atteint le niveau le plus haut. Il n''y a plus de palier au-dessus, mais tu peux continuer à te dépasser autrement : aider un camarade à valider une BEX, proposer un exercice de ton invention, ou explorer un sujet qui n''est pas au programme.'),
   ('period-start',
-   'La période vient de commencer, c''est normal que tes compteurs soient encore bas. Choisis dès maintenant l''objectif que tu veux atteindre, ça t''aidera à savoir où mettre ton énergie.')
+   'La période vient de commencer, c''est normal que tes compteurs soient encore bas. Choisis dès maintenant l''objectif que tu veux atteindre, ça t''aidera à savoir où mettre ton énergie.'),
+  ('on-pace',
+   'Tu es dans les temps : vu le nombre de semaines déjà passées, tu ne peux pas encore avoir plus, et tu n''as rien loupé. Continue à ce rythme-là. Pour atteindre ton objectif d''ici la fin de la période, il te faudra au total : {ecart}.')
 on conflict (key) do nothing;
 
 -- ------------------------------------------------------------------- RLS

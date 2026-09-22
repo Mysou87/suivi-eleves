@@ -15,6 +15,15 @@ export function isBlank(v) {
   return v === null || v === undefined || BLANK.test(String(v));
 }
 
+/**
+ * Date → « AAAA-MM-JJ » en heure LOCALE. `Date.toISOString()` convertit en
+ * UTC et peut reculer d'un jour (minuit en Belgique = la veille en UTC, été
+ * comme hiver) : à éviter pour des dates de calendrier, qui n'ont pas d'heure.
+ */
+export function toISODate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** minuscules, sans accents, espaces normalisés — pour comparer des libellés */
 export function norm(v) {
   return String(v ?? '')
@@ -688,6 +697,11 @@ export function parseCourseSheet(sheetName, rows, options = {}) {
     layout: {
       dlWeeks: dlWeeks.length,
       quizWeeks: quizWeeks.length,
+      // Calendrier réel des semaines de devoirs libres (congés/décloisonnements
+      // déjà exclus, puisque ce sont les colonnes réellement présentes) : sert
+      // à savoir combien de semaines ont déjà eu lieu, pour adapter les
+      // conseils au rythme au lieu de comparer au seuil de fin de période.
+      dlWeekDates: dlWeeks.map((w) => w.date).filter(Boolean).map(toISODate),
       bexGroups: bexGroups.map((g) => g.label),
       missionGroups: missionGroups.map((g) => g.label),
       depassementGroups: depGroups.map((g) => g.label),

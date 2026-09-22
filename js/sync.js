@@ -58,6 +58,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
     course_label: labelsFor(g.sheetName).thresholds,
     year_level: g.year,
     group_letter: g.group,
+    dl_week_dates: g.layout?.dlWeekDates || [],
   }));
 
   const { error: courseError } = await db

@@ -252,6 +252,59 @@ export function nextLevel(level) {
   return i >= 0 && i < LEVELS.length - 1 ? LEVELS[i + 1] : null;
 }
 
+// -------------------------------------------------------------------- rythme
+
+/**
+ * Part du chemin déjà parcouru dans la période, d'après le vrai calendrier
+ * des semaines de devoirs libres de CE cours (congés/décloisonnements déjà
+ * exclus, puisque ce sont les colonnes réellement présentes dans le classeur).
+ * Sert de rythme commun aux 5 compteurs : les devoirs libres et les quiz ne
+ * peuvent de toute façon pas aller plus vite qu'une semaine à la fois, et les
+ * autres compteurs demandent, eux aussi, du temps pour être travaillés — pas
+ * seulement de la place dans le classeur.
+ *
+ * Sans calendrier connu (classeur pas encore réimporté depuis cet ajout), on
+ * renvoie 1 : rien n'est adouci, comportement inchangé.
+ */
+export function periodProgress(weekDates, period, when = new Date()) {
+  const dates = (weekDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
+  const definition = periodByNumber(period);
+  if (!dates.length || !definition) return 1;
+
+  const limit = dayEnd(definition.lastCourse);
+  const totalPlanned = dates.filter((d) => d <= limit).length;
+  if (!totalPlanned) return 1;
+
+  const elapsed = dates.filter((d) => d <= dayEnd(when)).length;
+  return Math.min(1, elapsed / totalPlanned);
+}
+
+/**
+ * Écart vers `target` réduit à ce qui est déjà possible à ce stade de la
+ * période (seuils de chaque compteur multipliés par `periodProgress`, arrondis
+ * à l'inférieur pour rester indulgent). Sert à CHOISIR le conseil sans gronder
+ * un élève qui n'a simplement pas encore eu l'occasion d'accumuler plus ; le
+ * texte affiché continue, lui, à citer le vrai écart vers l'objectif final
+ * (gapTo, pas ce résultat-ci).
+ *
+ * Renvoie `null` si rien ne peut être adouci (pas de calendrier connu, ou
+ * période déjà terminée) : l'appelant retombe alors sur le comportement
+ * habituel.
+ */
+export function paceGapTo(target, student, thresholdsForPeriod, weekDates, period, context = {}) {
+  const progress = periodProgress(weekDates, period, context.when);
+  const wanted = thresholdsForPeriod?.[target];
+  if (!wanted || progress >= 1) return null;
+
+  const scaled = {};
+  COUNTERS.forEach((k) => {
+    scaled[k] = Math.floor((wanted[k] ?? 0) * progress);
+  });
+
+  const result = gapTo(target, student, { [target]: scaled }, context);
+  return result.gaps;
+}
+
 // ------------------------------------------------------------------ conseils
 
 /**
@@ -259,7 +312,11 @@ export function nextLevel(level) {
  * pédagogique : d'abord ce qui est simple à rattraper, ensuite les savoir-faire.
  */
 export function adviceKey(gap, student, options = {}) {
-  const g = gap.gaps || {};
+  // `paceGaps` (paceGapTo) réduit l'écart à ce qui est déjà possible à ce
+  // stade de la période : sert à choisir le conseil sans gronder un élève qui
+  // n'a simplement pas encore eu l'occasion d'accumuler plus. Absent (pas de
+  // calendrier connu), on retombe sur l'écart réel — comportement inchangé.
+  const g = options.paceGaps || gap.gaps || {};
   const count = Object.values(g).filter((v) => v > 0).length;
 
   if (gap.reached) return options.atTop ? 'level-max' : 'target-reached';
@@ -290,7 +347,11 @@ export function adviceKey(gap, student, options = {}) {
   if (g.quiz > 0) return 'behind-quiz';
   if (g.depassements > 0) return 'need-depassement';
   if (gap.examCondition) return 'exam-condition';
-  return 'target-reached';
+  // Plus rien à signaler AU RYTHME ACTUEL, mais l'objectif réel n'est pas
+  // atteint (sinon gap.reached aurait déjà tranché plus haut) : l'élève est
+  // dans les temps, pas encore arrivé. Sans rythme calculé (paceGaps absent),
+  // comportement historique inchangé.
+  return options.paceGaps ? 'on-pace' : 'target-reached';
 }
 
 /**
@@ -311,25 +372,35 @@ export const ADVICE_ORDER = [
   'behind-quiz',
   'need-depassement',
   'exam-condition',
+  'on-pace',
 ];
 
-/** condition de déclenchement de chaque conseil, en français, pour l'admin */
+/**
+ * Condition de déclenchement de chaque conseil, en français, pour l'admin.
+ * ⚠️ Depuis le calendrier réel par cours (paceGapTo), « en retard » veut dire
+ * en retard sur ce qui est déjà possible à ce stade de la période — pas sur
+ * le seuil de fin de période. Sans calendrier connu (cours pas encore
+ * réimporté depuis cet ajout), les seuils de fin de période servent tels
+ * quels, comme avant.
+ */
 export const ADVICE_CONDITIONS = {
   'level-max': "Objectif Très bien atteint : il n'y a plus de palier au-dessus.",
   'target-reached': 'Objectif atteint (autre que Très bien).',
   'period-start':
     "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
   'many-behind':
-    '3 compteurs en retard ou plus, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
-  'need-new-bex': "Il manque des BEX différentes, ou une BEX socle n'est pas encore validée.",
+    '3 compteurs en retard (au rythme) ou plus, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
+  'need-new-bex': "Il manque des BEX différentes au rythme, ou une BEX socle n'est pas encore validée (le socle n'est jamais adouci).",
   'missions-heavy':
-    "Il manque des validations, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",
-  'need-revalidation': 'Il manque des validations (hors cas « missions-heavy » ci-dessus).',
-  'behind-dl': 'Il manque des devoirs libres, et rien des conditions précédentes ne s\'applique.',
-  'behind-quiz': 'Il manque des quiz, et rien des conditions précédentes ne s\'applique.',
-  'need-depassement': 'Il manque des dépassements, et rien des conditions précédentes ne s\'applique.',
+    "Il manque des validations au rythme, ET l'élève en a déjà ≥ 3 via des missions avec peu de BEX revalidées par rapport à ses BEX différentes.",
+  'need-revalidation': 'Il manque des validations au rythme (hors cas « missions-heavy » ci-dessus).',
+  'behind-dl': 'Il manque des devoirs libres au rythme, et rien des conditions précédentes ne s\'applique.',
+  'behind-quiz': 'Il manque des quiz au rythme, et rien des conditions précédentes ne s\'applique.',
+  'need-depassement': 'Il manque des dépassements au rythme, et rien des conditions précédentes ne s\'applique.',
   'exam-condition':
-    "Tous les compteurs sont bons, mais l'examen de juin est encore en attente ou insuffisant pour le niveau visé.",
+    "Tout est bon au rythme, mais l'examen de juin est encore en attente ou insuffisant pour le niveau visé.",
+  'on-pace':
+    "Rien à signaler au rythme actuel, mais l'objectif final n'est pas encore atteint : l'élève est dans les temps, pas en retard. Ne se déclenche que si le calendrier réel du cours est connu (sinon target-reached ne s'applique jamais dans ce cas puisque l'objectif ne serait pas atteint tout court).",
 };
 
 /** textes par défaut, remplacés par ceux de la table `suivi_advice` */
@@ -356,6 +427,8 @@ export const DEFAULT_ADVICE = {
     "Tu as atteint le niveau le plus haut. Il n'y a plus de palier au-dessus, mais tu peux continuer à te dépasser autrement : aider un camarade à valider une BEX, proposer un exercice de ton invention, ou explorer un sujet qui n'est pas au programme.",
   'period-start':
     "La période vient de commencer, c'est normal que tes compteurs soient encore bas. Choisis dès maintenant l'objectif que tu veux atteindre, ça t'aidera à savoir où mettre ton énergie.",
+  'on-pace':
+    "Tu es dans les temps : vu le nombre de semaines déjà passées, tu ne peux pas encore avoir plus, et tu n'as rien loupé. Continue à ce rythme-là. Pour atteindre ton objectif d'ici la fin de la période, il te faudra au total : {ecart}.",
 };
 
 /** rend un écart en français : « 2 quiz et 1 dépassement » */

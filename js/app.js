@@ -30,6 +30,7 @@ import {
   periodAwaitingFreeze,
   periodByNumber,
   yearJustStarted,
+  paceGapTo,
   DEFAULT_ADVICE,
 } from './rules.js';
 
@@ -347,7 +348,8 @@ function renderGap(course, levels, counters, context, target, assessment) {
   title.textContent = `Pour atteindre ${LEVEL_LABELS[target]}`;
   addGapItems(list, gap, course);
 
-  const key = adviceKey(gap, course.student, { atTop, yearJustStarted: yearJustStarted() });
+  const paceGaps = paceGapTo(target, course.student, levels, course.dlWeekDates, state.period, context);
+  const key = adviceKey(gap, course.student, { atTop, yearJustStarted: yearJustStarted(), paceGaps });
   const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
   advice.textContent = fill(state.advice[key] || '', {
     X: biggest ? biggest[1] : '',

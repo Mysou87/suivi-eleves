@@ -113,16 +113,23 @@ export async function loadDashboard(db, studentId, when = new Date()) {
   const courseIds = enrollments.map((e) => e.course_id);
   const labels = [...new Set(enrollments.map((e) => e.suivi_courses?.course_label).filter(Boolean))];
 
-  const [countersRes, thresholdsRes, socleRes, itemsRes, targetsRes] = await Promise.all([
+  const [countersRes, thresholdsRes, socleRes, itemsRes, targetsRes, calendarRes] = await Promise.all([
     db.from('suivi_counters').select('*').eq('student_id', studentId).in('course_id', courseIds),
     db.from('suivi_thresholds').select('*').in('course_label', labels),
     db.from('suivi_socle').select('*').in('course_label', labels),
     db.from('suivi_items').select('*').in('course_label', labels).eq('kind', 'bex'),
     db.from('suivi_targets').select('*').eq('student_id', studentId).eq('period', period),
+    // Requête séparée et non bloquante : la colonne peut ne pas encore exister
+    // (migration pas encore appliquée). Sans elle, les conseils retombent sur
+    // le comportement historique (non adouci au rythme) — jamais d'erreur.
+    db.from('suivi_courses').select('id, dl_week_dates').in('id', courseIds),
   ]);
 
   const countersByCourse = new Map((countersRes.data || []).map((c) => [c.course_id, c]));
   const targetsByCourse = new Map((targetsRes.data || []).map((t) => [t.course_id, t.target_level]));
+  const dlWeekDatesByCourse = new Map(
+    (calendarRes.data || []).map((c) => [c.id, c.dl_week_dates || []])
+  );
 
   const courses = enrollments
     .filter((e) => e.suivi_courses)
@@ -151,6 +158,7 @@ export async function loadDashboard(db, studentId, when = new Date()) {
         bexLabels,
         target: targetsByCourse.get(course.id) || null,
         updatedAt: counterRow?.updated_at || null,
+        dlWeekDates: dlWeekDatesByCourse.get(course.id) || [],
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));

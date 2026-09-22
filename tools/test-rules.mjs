@@ -17,6 +17,8 @@ import {
   missingSocle,
   socleForPeriod,
   yearJustStarted,
+  periodProgress,
+  paceGapTo,
 } from '../js/rules.js';
 
 const FILE = process.argv[2] || WORKBOOK_PATH;
@@ -242,6 +244,62 @@ check(
   'objectif déjà atteint pendant le lancement → reste target-reached',
   adviceKey(reached, mid, { yearJustStarted: true }),
   'target-reached'
+);
+
+// ---------------------------------------------------------------- au rythme
+
+rule('Conseils adaptés au rythme réel (calendrier des semaines)');
+
+// 8 des 20 dates de WEEKS tombent avant la fin de la P1 (13/11) : c'est le
+// total « planifié » pour cette période.
+check('8 semaines de DL prévues en P1', WEEKS.filter((d) => d <= '2026-11-13').length, 8);
+check('sans calendrier connu : rythme = 1 (rien n\'est adouci)', periodProgress([], 1), 1);
+check('période inconnue : rythme = 1', periodProgress(WEEKS, 99), 1);
+check(
+  '2 semaines écoulées sur 8 prévues → rythme = 0,25',
+  periodProgress(WEEKS, 1, '2026-09-14'),
+  0.25
+);
+check(
+  'toutes les semaines de la période passées → rythme plafonné à 1',
+  periodProgress(WEEKS, 1, '2026-12-01'),
+  1
+);
+
+// Objectif B (6/4/2/2/0 en P1) : à 0,25 de rythme, seuils réduits à 1/1/0/0/0.
+const onTrackStudent = makeStudent({ dl: 1, quiz: 1 });
+const paceOnTrack = paceGapTo('B', onTrackStudent, p1, WEEKS, 1, { ...ctx, when: '2026-09-14' });
+check('au rythme (1 DL, 1 quiz sur 8 semaines) : aucun écart au rythme', paceOnTrack, {});
+check(
+  'mais l\'écart réel vers B reste important (pas encore atteint)',
+  Object.keys(gapTo('B', onTrackStudent, p1, ctx).gaps).length >= 3,
+  true
+);
+check(
+  'conseil : dans les temps, pas en retard',
+  adviceKey(gapTo('B', onTrackStudent, p1, ctx), onTrackStudent, { paceGaps: paceOnTrack }),
+  'on-pace'
+);
+
+// Même rythme, mais un compteur (quiz) n'a vraiment pas bougé : lui seul
+// ressort, pas un « many-behind » sur l'ensemble.
+const laggingQuiz = makeStudent({ dl: 1 });
+const paceLagging = paceGapTo('B', laggingQuiz, p1, WEEKS, 1, { ...ctx, when: '2026-09-14' });
+check('un seul compteur réellement en retard sur le rythme', paceLagging, { quiz: 1 });
+check(
+  'conseil ciblé sur les quiz, pas many-behind',
+  adviceKey(gapTo('B', laggingQuiz, p1, ctx), laggingQuiz, { paceGaps: paceLagging }),
+  'behind-quiz'
+);
+
+// Sans calendrier connu pour ce cours (import pas encore refait) : le
+// comportement historique (écart réel, non adouci) continue de s'appliquer.
+const paceUnknown = paceGapTo('B', laggingQuiz, p1, [], 1, { ...ctx, when: '2026-09-14' });
+check('pas de calendrier connu → paceGapTo renvoie null', paceUnknown, null);
+check(
+  'sans rythme calculé, comportement historique (many-behind) inchangé',
+  adviceKey(gapTo('B', laggingQuiz, p1, ctx), laggingQuiz, { paceGaps: paceUnknown }),
+  'many-behind'
 );
 
 // ---------------------------------------------------- différence entre cours

@@ -179,6 +179,11 @@ check('deux élèves lus', fake.students.length, 2);
 check('classe déduite de la colonne A', [lea.className, tom.className], ['5B', '5C']);
 check('3 devoirs libres pour Léa', lea.counters.dl, 3);
 check('dont 2 avant le 13/11', lea.dl.filter((d) => d.date <= new Date('2026-11-13')).length, 2);
+check(
+  'calendrier réel des semaines de DL exposé (pour adapter les conseils au rythme)',
+  fake.layout.dlWeekDates,
+  ['2026-09-07', '2026-09-14', '2026-11-16']
+);
 check('4 validations (3 BEX + 1 exam)', lea.counters.validations, 4);
 check('2 BEX différentes', lea.counters.bexDiff, 2);
 check(

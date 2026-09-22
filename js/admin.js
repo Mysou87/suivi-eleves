@@ -29,6 +29,7 @@ import {
   nextLevel,
   yearJustStarted,
   describeGap,
+  paceGapTo,
   DEFAULT_ADVICE,
   ADVICE_ORDER,
   ADVICE_CONDITIONS,
@@ -499,7 +500,12 @@ async function renderOverview() {
           }
         } else {
           const atTop = target === 'TB';
-          adviceKeyShown = adviceKey(gap, entry.student_model, { atTop, yearJustStarted: yearJustStarted() });
+          const paceGaps = paceGapTo(target, entry.student_model, levels, course.dl_week_dates, period, context);
+          adviceKeyShown = adviceKey(gap, entry.student_model, {
+            atTop,
+            yearJustStarted: yearJustStarted(),
+            paceGaps,
+          });
           const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
           adviceText = fill(state.advice[adviceKeyShown] || '', {
             X: biggest ? biggest[1] : '',
