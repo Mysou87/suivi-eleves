@@ -20,6 +20,8 @@ import {
   periodProgress,
   paceGapTo,
   remainingCourseWeeks,
+  onlyDlLeft,
+  dlEncouragement,
 } from '../js/rules.js';
 
 const FILE = process.argv[2] || WORKBOOK_PATH;
@@ -238,6 +240,18 @@ check(
   adviceKey(reached, mid, { yearJustStarted: true }),
   'target-reached'
 );
+
+// --------------------------------------------------- objectif atteint, DL proche
+
+rule('Encouragement DL juste avant le palier suivant');
+check('un seul DL manquant, rien d\'autre → onlyDlLeft', onlyDlLeft({ dl: 1 }), true);
+check('deux DL manquants, rien d\'autre → onlyDlLeft', onlyDlLeft({ dl: 2 }), true);
+check('trois DL manquants → pas assez proche, false', onlyDlLeft({ dl: 3 }), false);
+check('DL manquant ET autre chose → false', onlyDlLeft({ dl: 1, quiz: 1 }), false);
+check('rien ne manque → false', onlyDlLeft({}), false);
+check('autre chose seul que le DL → false', onlyDlLeft({ quiz: 1 }), false);
+check('formulation au singulier', dlEncouragement(1), 'ton devoir libre au prochain cours');
+check('formulation au pluriel', dlEncouragement(2), 'tes 2 devoirs libres aux prochains cours');
 
 // ---------------------------------------------------------------- au rythme
 

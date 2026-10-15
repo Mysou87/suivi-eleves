@@ -30,6 +30,8 @@ import {
   yearJustStarted,
   describeGap,
   paceGapTo,
+  onlyDlLeft,
+  dlEncouragement,
   DEFAULT_ADVICE,
   ADVICE_ORDER,
   ADVICE_CONDITIONS,
@@ -512,11 +514,19 @@ async function renderOverview() {
           const after = nextLevel(target);
           if (after) {
             const nextGap = gapTo(after, entry.student_model, levels, context);
-            adviceKeyShown = 'target-reached';
-            adviceText = fill(state.advice['target-reached'], {
-              next: LEVEL_LABELS[after],
-              ecart: describeGap(nextGap.gaps) || 'plus rien, tu y es déjà',
-            });
+            if (onlyDlLeft(nextGap.gaps)) {
+              adviceKeyShown = 'close-to-next-dl';
+              adviceText = fill(state.advice['close-to-next-dl'], {
+                next: LEVEL_LABELS[after],
+                dl_phrase: dlEncouragement(nextGap.gaps.dl),
+              });
+            } else {
+              adviceKeyShown = 'target-reached';
+              adviceText = fill(state.advice['target-reached'], {
+                next: LEVEL_LABELS[after],
+                ecart: describeGap(nextGap.gaps) || 'plus rien, tu y es déjà',
+              });
+            }
           } else {
             adviceKeyShown = 'level-max';
             adviceText = state.advice['level-max'];

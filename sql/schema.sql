@@ -210,6 +210,8 @@ insert into suivi_advice (key, body) values
    'Tu as accumulé pas mal de validations grâce aux missions, et c''est chouette de t''y investir. Mais les savoir-faire individuels restent la base : il te faut {X} validations de plus, et les BEX sont la voie la plus sûre.'),
   ('target-reached',
    'Tu as atteint ton objectif, bravo. Tu peux t''arrêter là et consolider ce que tu as, ou viser {next}. Pour y aller, il te faudrait : {ecart}.'),
+  ('close-to-next-dl',
+   'Bravo, ton objectif {next} va être atteint si tu n''oublies pas d''apporter {dl_phrase} !'),
   ('level-max',
    'Tu as atteint le niveau le plus haut. Il n''y a plus de palier au-dessus, mais tu peux continuer à te dépasser autrement : aider un camarade à valider une BEX, proposer un exercice de ton invention, ou explorer un sujet qui n''est pas au programme.'),
   ('period-start',

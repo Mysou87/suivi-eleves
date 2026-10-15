@@ -32,6 +32,8 @@ import {
   yearJustStarted,
   paceGapTo,
   remainingCourseWeeks,
+  onlyDlLeft,
+  dlEncouragement,
   DEFAULT_ADVICE,
 } from './rules.js';
 
@@ -342,10 +344,15 @@ function renderGap(course, levels, counters, context, target, assessment) {
     if (after) {
       const nextGap = gapTo(after, course.student, levels, context);
       addGapItems(list, nextGap, course);
-      advice.textContent = fill(state.advice['target-reached'], {
-        next: LEVEL_LABELS[after],
-        ecart: describeGap(nextGap.gaps) || 'plus rien, tu y es déjà',
-      });
+      advice.textContent = onlyDlLeft(nextGap.gaps)
+        ? fill(state.advice['close-to-next-dl'], {
+            next: LEVEL_LABELS[after],
+            dl_phrase: dlEncouragement(nextGap.gaps.dl),
+          })
+        : fill(state.advice['target-reached'], {
+            next: LEVEL_LABELS[after],
+            ecart: describeGap(nextGap.gaps) || 'plus rien, tu y es déjà',
+          });
     } else {
       advice.textContent = state.advice['level-max'];
     }

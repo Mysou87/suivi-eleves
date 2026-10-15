@@ -432,6 +432,7 @@ export function adviceKey(gap, student, options = {}) {
  */
 export const ADVICE_ORDER = [
   'level-max',
+  'close-to-next-dl',
   'target-reached',
   'period-start',
   'many-behind',
@@ -455,6 +456,8 @@ export const ADVICE_ORDER = [
  */
 export const ADVICE_CONDITIONS = {
   'level-max': "Objectif Très bien atteint : il n'y a plus de palier au-dessus.",
+  'close-to-next-dl':
+    "Objectif atteint, et il ne manque plus que des devoirs libres (1 ou 2, rien d'autre) pour le palier suivant — prioritaire sur target-reached dans ce cas précis.",
   'target-reached': 'Objectif atteint (autre que Très bien).',
   'period-start':
     "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
@@ -497,6 +500,8 @@ export const DEFAULT_ADVICE = {
     "Tu as accumulé pas mal de validations grâce aux missions, et c'est chouette de t'y investir. Mais les savoir-faire individuels restent la base : il te faut {X} validations de plus, et les BEX sont la voie la plus sûre.",
   'target-reached':
     "Tu as atteint ton objectif, bravo. Tu peux t'arrêter là et consolider ce que tu as, ou viser {next}. Pour y aller, il te faudrait : {ecart}.",
+  'close-to-next-dl':
+    "Bravo, ton objectif {next} va être atteint si tu n'oublies pas d'apporter {dl_phrase} !",
   'level-max':
     "Tu as atteint le niveau le plus haut. Il n'y a plus de palier au-dessus, mais tu peux continuer à te dépasser autrement : aider un camarade à valider une BEX, proposer un exercice de ton invention, ou explorer un sujet qui n'est pas au programme.",
   'period-start':
@@ -516,4 +521,21 @@ export function describeGap(gaps) {
   if (!parts.length) return '';
   if (parts.length === 1) return parts[0];
   return `${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Détecte le cas « objectif atteint, plus qu'1 ou 2 devoirs libres pour le
+ * palier suivant » (rien d'autre ne manque) — sert à choisir le conseil
+ * `close-to-next-dl` plutôt que le `target-reached` générique.
+ */
+export function onlyDlLeft(gaps) {
+  const keys = Object.keys(gaps || {});
+  return keys.length === 1 && keys[0] === 'dl' && gaps.dl > 0 && gaps.dl <= 2;
+}
+
+/** « ton devoir libre au prochain cours » / « tes 2 devoirs libres aux prochains cours » */
+export function dlEncouragement(n) {
+  return n === 1
+    ? 'ton devoir libre au prochain cours'
+    : `tes ${n} devoirs libres aux prochains cours`;
 }
