@@ -31,6 +31,7 @@ import {
   periodByNumber,
   yearJustStarted,
   paceGapTo,
+  remainingCourseWeeks,
   DEFAULT_ADVICE,
 } from './rules.js';
 
@@ -154,9 +155,9 @@ async function openDashboard(student) {
   $('login').hidden = true;
   $('app').hidden = false;
 
+  state.activeCourseId = state.courses[0]?.id ?? null;
   renderPeriodBanner();
   renderTabs();
-  state.activeCourseId = state.courses[0]?.id ?? null;
   await renderCourse();
 }
 
@@ -175,7 +176,13 @@ function renderPeriodBanner() {
   }
 
   banner.className = 'banner';
-  const remaining = weeksUntil(period.lastCourse);
+  // Vraies semaines de cours restantes (congés déjà exclus) d'après le
+  // calendrier de n'importe quel cours de l'élève : ils partagent tous le
+  // même calendrier scolaire. Sans calendrier connu, on retombe sur un
+  // calcul calendaire simple (jours / 7).
+  const course = activeCourse() || state.courses[0];
+  const realWeeks = remainingCourseWeeks(course?.dlWeekDates, period.lastCourse);
+  const remaining = realWeeks ?? weeksUntil(period.lastCourse);
   banner.textContent =
     `Période ${state.period}` +
     (remaining > 0

@@ -225,15 +225,27 @@ $('do-auto-import').addEventListener('click', async () => {
   box.append(refreshed);
 });
 
-/** « il y a 20 minutes », « hier à 18:40 »… pour juger de la fraicheur. */
+/**
+ * « il y a 20 minutes », « hier à 18:40 »… pour juger de la fraicheur.
+ *
+ * « Aujourd'hui »/« hier » se décide par vraie date civile (jour/mois/année
+ * locaux), pas par un écart glissant de 24h : une connexion d'hier soir à
+ * 21h55 doit rester « hier », même si moins de 24h se sont écoulées depuis.
+ */
 function formatWhen(iso) {
   const date = new Date(iso);
-  const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+  const now = new Date();
+  const minutes = Math.round((now.getTime() - date.getTime()) / 60000);
   const time = date.toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' });
+
   if (minutes < 2) return "à l'instant";
   if (minutes < 60) return `il y a ${minutes} minutes`;
-  if (minutes < 24 * 60) return `aujourd'hui à ${time}`;
-  if (minutes < 48 * 60) return `hier à ${time}`;
+
+  const dayStart = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const daysAgo = Math.round((dayStart(now) - dayStart(date)) / 86400000);
+
+  if (daysAgo === 0) return `aujourd'hui à ${time}`;
+  if (daysAgo === 1) return `hier à ${time}`;
   return `le ${formatDate(iso)} à ${time}`;
 }
 

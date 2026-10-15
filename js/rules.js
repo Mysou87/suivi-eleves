@@ -144,29 +144,24 @@ function examSatisfied(condition, examLevel) {
 
 /**
  * L'élève atteint-il ce niveau ? Le niveau global est le plus bas des
- * compteurs : il faut donc que tous soient au moins au seuil.
+ * compteurs : il faut donc que tous soient au moins au seuil, sans tolérance —
+ * la tolérance d'un devoir libre oublié ne s'applique qu'au calcul du rythme
+ * (« à jour »/« en retard », voir `paceGapTo`), jamais au niveau réellement
+ * atteint : un seuil non atteint reste « juste suffisant », pas « suffisant ».
  *
- * Deux nuances décidées avec Laureline :
- *  - un cran de tolérance sur les devoirs libres seulement (ils mesurent
- *    l'engagement, pas la compétence) — désactivable via options ;
- *  - les BEX socles doivent être validées dès qu'un seuil de BEX différentes
- *    est exigé, sinon le compte ne suffit pas.
+ * Nuance restante décidée avec Laureline : les BEX socles doivent être
+ * validées dès qu'un seuil de BEX différentes est exigé, sinon le compte ne
+ * suffit pas.
  */
 export function meetsLevel(level, counters, thresholdsForPeriod, context = {}) {
   const wanted = thresholdsForPeriod?.[level];
   if (!wanted) return { ok: false, failing: [], reason: 'seuils absents' };
 
-  const { dlTolerance = true, socleMissing = [], examLevel = null } = context;
+  const { socleMissing = [], examLevel = null } = context;
 
   const failing = [];
   COUNTERS.forEach((key) => {
-    let required = wanted[key] ?? 0;
-
-    if (key === 'dl' && dlTolerance && level !== 'JS') {
-      const lower = LEVELS[LEVELS.indexOf(level) - 1];
-      const lowerValue = thresholdsForPeriod?.[lower]?.dl;
-      if (typeof lowerValue === 'number') required = Math.min(required, lowerValue);
-    }
+    const required = wanted[key] ?? 0;
 
     if ((counters[key] ?? 0) < required) {
       failing.push({ counter: key, have: counters[key] ?? 0, need: required });
@@ -287,6 +282,23 @@ export function periodProgress(weekDates, period, when = new Date()) {
 export function bexMomentsElapsed(evalDates, when = new Date()) {
   const dates = (evalDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
   return dates.filter((d) => d <= dayEnd(when)).length;
+}
+
+/**
+ * Nombre de vraies semaines de cours restantes avant `limit` (d'après le
+ * calendrier réel des semaines de devoirs libres : congés/décloisonnements
+ * déjà exclus, ce sont les colonnes réellement présentes dans le classeur).
+ * Remplace un simple calcul calendaire (jours / 7), qui compterait à tort les
+ * semaines de vacances. Renvoie `null` sans calendrier connu (classeur pas
+ * encore réimporté depuis cet ajout) : l'appelant retombe alors sur l'ancien
+ * calcul calendaire.
+ */
+export function remainingCourseWeeks(weekDates, limit, when = new Date()) {
+  const dates = (weekDates || []).map((d) => toDate(d)).filter((d) => !isNaN(d));
+  if (!dates.length) return null;
+  const today = dayEnd(when);
+  const end = dayEnd(limit);
+  return dates.filter((d) => d > today && d <= end).length;
 }
 
 /**

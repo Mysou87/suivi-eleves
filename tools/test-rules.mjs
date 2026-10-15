@@ -19,6 +19,7 @@ import {
   yearJustStarted,
   periodProgress,
   paceGapTo,
+  remainingCourseWeeks,
 } from '../js/rules.js';
 
 const FILE = process.argv[2] || WORKBOOK_PATH;
@@ -132,16 +133,8 @@ check(
   'B'
 );
 check(
-  'tolérance DL : DL5 (seuil B=6) avec le reste au niveau B → Bien',
+  'pas de tolérance DL sur le niveau atteint : DL5 (seuil B=6) avec le reste au niveau B → reste Suffisant',
   evaluate(makeStudent({ dl: 5, quiz: 4, bex: [1, 1, 0, 0, 0, 0, 0, 0] }), p1, ctx).level,
-  'B'
-);
-check(
-  'tolérance désactivée : le même élève retombe à Suffisant',
-  evaluate(makeStudent({ dl: 5, quiz: 4, bex: [1, 1, 0, 0, 0, 0, 0, 0] }), p1, {
-    ...ctx,
-    dlTolerance: false,
-  }).level,
   'S'
 );
 
@@ -263,6 +256,22 @@ check(
 check(
   'toutes les semaines de la période passées → rythme plafonné à 1',
   periodProgress(WEEKS, 1, '2026-12-01'),
+  1
+);
+
+check(
+  'semaines de cours restantes avant le 13/11 : 2 (pas 4) grâce au vrai calendrier (trou 19/10-26/10)',
+  remainingCourseWeeks(WEEKS, '2026-11-13', '2026-10-15'),
+  2
+);
+check(
+  'sans calendrier connu : remainingCourseWeeks renvoie null (l\'appelant retombe sur le calcul calendaire)',
+  remainingCourseWeeks([], '2026-11-13', '2026-10-15'),
+  null
+);
+check(
+  'le jour même d\'une semaine de cours : elle ne compte plus comme restante',
+  remainingCourseWeeks(WEEKS, '2026-11-13', '2026-11-02'),
   1
 );
 
