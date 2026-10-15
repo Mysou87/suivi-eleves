@@ -253,6 +253,21 @@ check('autre chose seul que le DL → false', onlyDlLeft({ quiz: 1 }), false);
 check('formulation au singulier', dlEncouragement(1), 'ton devoir libre au prochain cours');
 check('formulation au pluriel', dlEncouragement(2), 'tes 2 devoirs libres aux prochains cours');
 
+// Cas réel : objectif B (6 DL), élève à 5 DL, tout le reste déjà bon (cas Camille Ermans).
+const almostB = makeStudent({ dl: 5, quiz: 4, bex: [1, 1, 0, 0, 0, 0, 0, 0] });
+const gapAlmostB = gapTo('B', almostB, p1, ctx);
+check('écart réel vers B : seulement 1 DL', gapAlmostB.gaps, { dl: 1 });
+check(
+  'conseil sans info de rythme : close-to-next-dl (prioritaire sur behind-dl)',
+  adviceKey(gapAlmostB, almostB, {}),
+  'close-to-next-dl'
+);
+check(
+  'conseil même si le rythme dit « à jour » (pace vide) : close-to-next-dl prioritaire sur on-pace',
+  adviceKey(gapAlmostB, almostB, { paceGaps: {} }),
+  'close-to-next-dl'
+);
+
 // ---------------------------------------------------------------- au rythme
 
 rule('Conseils adaptés au rythme réel (calendrier des semaines)');

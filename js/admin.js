@@ -541,8 +541,12 @@ async function renderOverview() {
           const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
           adviceText = fill(state.advice[adviceKeyShown] || '', {
             X: biggest ? biggest[1] : '',
-            next: LEVEL_LABELS[nextLevel(target) || 'TB'],
+            next:
+              adviceKeyShown === 'close-to-next-dl'
+                ? LEVEL_LABELS[target]
+                : LEVEL_LABELS[nextLevel(target) || 'TB'],
             ecart: describeGap(gap.gaps),
+            dl_phrase: gap.gaps.dl ? dlEncouragement(gap.gaps.dl) : '',
           });
         }
 

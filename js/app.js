@@ -188,7 +188,7 @@ function renderPeriodBanner() {
   banner.textContent =
     `Période ${state.period}` +
     (remaining > 0
-      ? ` · il te reste ${remaining} semaine${remaining > 1 ? 's' : ''} avant le ${formatDate(period.lastCourse)}.`
+      ? ` · il te reste ${remaining} semaine${remaining > 1 ? 's' : ''} de cours avant le ${formatDate(period.lastCourse)}.`
       : ` · dernière ligne droite.`);
 }
 
@@ -370,8 +370,11 @@ function renderGap(course, levels, counters, context, target, assessment) {
   const biggest = Object.entries(gap.gaps).sort((a, b) => b[1] - a[1])[0];
   advice.textContent = fill(state.advice[key] || '', {
     X: biggest ? biggest[1] : '',
-    next: LEVEL_LABELS[nextLevel(target) || 'TB'],
+    // close-to-next-dl parle de L'OBJECTIF VISÉ (pas encore atteint), pas du
+    // palier suivant comme les autres conseils de cette branche.
+    next: key === 'close-to-next-dl' ? LEVEL_LABELS[target] : LEVEL_LABELS[nextLevel(target) || 'TB'],
     ecart: describeGap(gap.gaps),
+    dl_phrase: gap.gaps.dl ? dlEncouragement(gap.gaps.dl) : '',
   });
 }
 

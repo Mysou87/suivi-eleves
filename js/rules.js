@@ -392,6 +392,14 @@ export function adviceKey(gap, student, options = {}) {
     (k) => !counters[k]
   );
   if (options.yearJustStarted && nothingDoneYet) return 'period-start';
+
+  // Écart RÉEL (pas adouci au rythme) : si tout le reste est déjà bon et qu'il
+  // ne manque plus qu'1 ou 2 devoirs libres pour l'objectif visé, le vrai
+  // retard est minime — un message encourageant et concret (« n'oublie pas de
+  // l'apporter ») est plus utile que « dans les temps » (on-pace) ou qu'un
+  // conseil générique, même si le rythme considère que ce n'est pas en retard.
+  if (onlyDlLeft(gap.gaps || {})) return 'close-to-next-dl';
+
   // Le côté « ça vient de commencer » adoucit seulement le cumul de retards
   // (qui serait décourageant en semaine 2), pas les conseils ciblés ci-dessous.
   if (domains >= 3 && !options.yearJustStarted) return 'many-behind';
@@ -432,9 +440,9 @@ export function adviceKey(gap, student, options = {}) {
  */
 export const ADVICE_ORDER = [
   'level-max',
-  'close-to-next-dl',
   'target-reached',
   'period-start',
+  'close-to-next-dl',
   'many-behind',
   'behind-dl',
   'behind-quiz',
@@ -456,11 +464,11 @@ export const ADVICE_ORDER = [
  */
 export const ADVICE_CONDITIONS = {
   'level-max': "Objectif Très bien atteint : il n'y a plus de palier au-dessus.",
-  'close-to-next-dl':
-    "Objectif atteint, et il ne manque plus que des devoirs libres (1 ou 2, rien d'autre) pour le palier suivant — prioritaire sur target-reached dans ce cas précis.",
   'target-reached': 'Objectif atteint (autre que Très bien).',
   'period-start':
     "Aucun compteur touché (DL, quiz, validations, BEX différentes, dépassements tous à 0) ET on est avant le 15 septembre.",
+  'close-to-next-dl':
+    "Deux cas, même message : (1) objectif PAS encore atteint, mais l'écart RÉEL (pas celui adouci au rythme) ne porte plus que sur 1 ou 2 devoirs libres, rien d'autre — prioritaire sur many-behind/behind-dl/on-pace dans ce cas précis ; (2) objectif déjà atteint, et il ne manque plus que 1 ou 2 devoirs libres (rien d'autre) pour le palier suivant — prioritaire sur target-reached dans ce cas précis.",
   'many-behind':
     '3 domaines en retard (au rythme) ou plus — DL, quiz, validations/BEX différentes ensemble, dépassements —, ET on est après le 15 septembre (avant cette date, un conseil plus précis prend le relais).',
   'behind-dl':
