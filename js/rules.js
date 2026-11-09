@@ -332,7 +332,15 @@ export function remainingCourseWeeks(weekDates, limit, when = new Date()) {
 export function paceGapTo(target, student, thresholdsForPeriod, weekDates, period, context = {}) {
   const progress = periodProgress(weekDates, period, context.when);
   const wanted = thresholdsForPeriod?.[target];
-  if (!wanted || progress >= 1) return null;
+  if (!wanted) return null;
+  // Calendrier inconnu : pas de rythme calculable (l'appelant n'affiche pas
+  // de couleur trompeuse).
+  const knownCalendar = (weekDates || []).some((d) => !isNaN(toDate(d)));
+  if (!knownCalendar) return null;
+  // Dernière semaine de cours de la période atteinte : le « rythme » se
+  // confond avec le seuil complet. Renvoyer l'écart réel plutôt que null,
+  // sinon l'admin perd toutes ses couleurs pendant la dernière semaine.
+  if (progress >= 1) return gapTo(target, student, thresholdsForPeriod, context).gaps;
 
   const scaled = {};
   COUNTERS.forEach((k) => {
