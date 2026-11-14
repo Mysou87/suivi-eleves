@@ -12,7 +12,6 @@ import {
 import { parseWorkbook } from './parser.js';
 import { syncWorkbook } from './sync.js';
 import { loadAdminOverview, loadAdvice } from './data.js';
-import { prepareFreeze, freezePeriod } from './freeze.js';
 import {
   LEVELS,
   LEVEL_LABELS,
@@ -70,7 +69,7 @@ if (!secrets.ADMIN_PASSWORD) {
   $('gate-form').querySelector('button').disabled = true;
 }
 
-$('gate-form').addEventListener('submit', (event) => {
+$('gate-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!secrets.ADMIN_PASSWORD || $('password').value !== secrets.ADMIN_PASSWORD) {
     $('gate-error').textContent = 'Mot de passe incorrect.';
@@ -79,11 +78,7 @@ $('gate-form').addEventListener('submit', (event) => {
   }
   $('gate').hidden = true;
   $('admin').hidden = false;
-  const period = currentPeriod();
-  const definition = periodByNumber(period);
-  $('period-info').textContent =
-    `Période ${period} · dernier cours le ${formatDate(definition.lastCourse)} · ` +
-    `conseil le ${formatDate(definition.freeze)}`;
+  $('period-info').innerHTML = 'Période choisie cours par cours · <a href="periode.html">changer de période</a>';
   if (!secrets.SUPABASE_SERVICE_KEY) {
     $('no-write-key').textContent = `Lecture seule. ${MISSING_SERVICE_KEY}`;
     $('no-write-key').hidden = false;
@@ -452,7 +447,7 @@ async function renderOverview() {
     $('only-behind').addEventListener('change', renderOverview);
   }
 
-  const { period, courses } = state.overview;
+  const { courses } = state.overview;
   const filter = $('course-filter').value;
   const onlyBehind = $('only-behind').checked;
   box.innerHTML = '';
@@ -460,11 +455,12 @@ async function renderOverview() {
   courses
     .filter((course) => !filter || String(course.id) === filter)
     .forEach((course) => {
+      const period = course.period;
       const levels = course.thresholds[period];
       if (!levels) return;
 
       const heading = document.createElement('h3');
-      heading.textContent = `${course.sheet_name} — seuils de « ${course.course_label} »`;
+      heading.textContent = `${course.sheet_name} — P${period} — seuils de « ${course.course_label} »`;
 
       const table = document.createElement('table');
       table.innerHTML =
@@ -645,54 +641,12 @@ async function renderAdvice() {
 
 // -------------------------------------------------------------------- figeage
 
+// Le figeage se fait désormais cours par cours, au moment où la professeure
+// fait passer un cours à la période suivante (page `periode.html`, en ligne).
 async function renderFreeze() {
-  const box = $('freeze-list');
-  box.innerHTML = '';
-  const now = new Date();
-
-  for (const definition of PERIODS) {
-    const prepared = await prepareFreeze(db, definition.number);
-    const row = document.createElement('div');
-    row.className = 'freeze-row';
-
-    const info = document.createElement('div');
-    info.className = 'grow';
-    const already = prepared.skipped?.length || 0;
-    const ready = prepared.rows?.length || 0;
-    const due = new Date(definition.freeze) <= now;
-
-    info.innerHTML =
-      `<strong>Période ${definition.number}</strong> — dernier cours le ` +
-      `${formatDate(definition.lastCourse)}, conseil le ${formatDate(definition.freeze)}<br>` +
-      `<span class="muted small">${already} déjà figé(s), ${ready} à figer` +
-      `${due ? '' : ' · le conseil n\'a pas encore eu lieu'}</span>`;
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = already ? 'Figer les manquants' : 'Figer maintenant';
-    button.disabled = ready === 0;
-
-    const status = document.createElement('span');
-    status.className = 'saved';
-
-    button.addEventListener('click', async () => {
-      const message = due
-        ? `Figer ${ready} bulletin(s) de la période ${definition.number} ?`
-        : `Le conseil de la période ${definition.number} n'a pas encore eu lieu ` +
-          `(${formatDate(definition.freeze)}). Figer quand même ${ready} bulletin(s) ?`;
-      if (!window.confirm(message)) return;
-
-      button.disabled = true;
-      const result = await freezePeriod(db, definition.number);
-      status.textContent = result.error
-        ? `Erreur : ${result.error}`
-        : `${result.written} bulletin(s) figé(s)`;
-      renderFreeze();
-    });
-
-    row.append(info, button, status);
-    box.append(row);
-  }
+  $('freeze-list').innerHTML =
+    '<p>Les bulletins se figent cours par cours, au moment où tu fais passer un cours à la ' +
+    'période suivante : <a href="periode.html">changer de période</a>.</p>';
 }
 
 // ----------------------------------------------------------------- utilitaires

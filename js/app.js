@@ -58,7 +58,6 @@ const DEMO_ROW = {
 
 const state = {
   student: null,
-  period: currentPeriod(),
   courses: [],
   advice: DEFAULT_ADVICE,
   activeCourseId: null,
@@ -144,7 +143,6 @@ async function openDashboard(student) {
     return;
   }
 
-  state.period = dash.period ?? currentPeriod();
   state.courses = dash.courses || [];
 
   if (DEMO) {
@@ -158,38 +156,28 @@ async function openDashboard(student) {
   $('app').hidden = false;
 
   state.activeCourseId = state.courses[0]?.id ?? null;
-  renderPeriodBanner();
   renderTabs();
   await renderCourse();
 }
 
-function renderPeriodBanner() {
+// La période dépend du cours : la professeure fait passer chaque cours à la
+// période suivante quand elle a fini ses bulletins.
+function renderPeriodBanner(course) {
   const banner = $('period-banner');
-  const awaiting = periodAwaitingFreeze();
-  const period = periodByNumber(state.period);
-
-  if (awaiting) {
-    const council = periodByNumber(awaiting);
-    banner.className = 'banner frozen';
-    banner.textContent =
-      `Bulletin ${awaiting} en cours de finalisation, il sera arrêté au conseil du ` +
-      `${formatDate(council.freeze)}. Ce que tu fais maintenant compte pour la période ${state.period}.`;
-    return;
-  }
+  const number = course?.period ?? 1;
+  const period = periodByNumber(number);
 
   banner.className = 'banner';
   // Vraies semaines de cours restantes (congés déjà exclus) d'après le
-  // calendrier de n'importe quel cours de l'élève : ils partagent tous le
-  // même calendrier scolaire. Sans calendrier connu, on retombe sur un
-  // calcul calendaire simple (jours / 7).
-  const course = activeCourse() || state.courses[0];
+  // calendrier du cours. Sans calendrier connu, on retombe sur un calcul
+  // calendaire simple (jours / 7).
   const realWeeks = remainingCourseWeeks(course?.dlWeekDates, period.lastCourse);
   const remaining = realWeeks ?? weeksUntil(period.lastCourse);
   banner.textContent =
-    `Période ${state.period}` +
+    `Période ${number}` +
     (remaining > 0
       ? ` · il te reste ${remaining} semaine${remaining > 1 ? 's' : ''} de cours avant le ${formatDate(period.lastCourse)}.`
-      : ` · dernière ligne droite.`);
+      : ` · la période va bientôt se clôturer : ce qui est encodé d'ici là compte encore.`);
 }
 
 function renderTabs() {
@@ -219,8 +207,9 @@ function activeCourse() {
 async function renderCourse() {
   const course = activeCourse();
   if (!course || !course.student) return;
+  renderPeriodBanner(course);
 
-  const levels = course.thresholds[state.period];
+  const levels = course.thresholds[course.period];
   if (!levels) {
     $('gap-title').textContent = 'Seuils indisponibles';
     $('advice').textContent = 'Les seuils de cette période ne sont pas encore renseignés.';
@@ -229,7 +218,7 @@ async function renderCourse() {
 
   const counters = countersAt(course.student);
   const context = {
-    socle: socleForPeriod(course.socle, state.period),
+    socle: socleForPeriod(course.socle, course.period),
     examLevel: course.student.examLevel,
     counters,
   };
@@ -276,7 +265,7 @@ function renderTargetPicker(course, levels, counters, context, target, assessmen
 
     button.addEventListener('click', async () => {
       course.target = level;
-      await saveTarget(db, state.student.id, course.id, state.period, level);
+      await saveTarget(db, state.student.id, course.id, course.period, level);
       await renderCourse();
     });
 
@@ -362,7 +351,7 @@ function renderGap(course, levels, counters, context, target, assessment) {
   title.textContent = `Pour atteindre ${LEVEL_LABELS[target]}`;
   addGapItems(list, gap, course);
 
-  const paceGaps = paceGapTo(target, course.student, levels, course.dlWeekDates, state.period, {
+  const paceGaps = paceGapTo(target, course.student, levels, course.dlWeekDates, course.period, {
     ...context,
     evalDates: course.evalDates,
   });

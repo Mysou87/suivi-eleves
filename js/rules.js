@@ -58,20 +58,41 @@ const dayEnd = (v) => {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 };
 
+/**
+ * Période active, choisie à la main par la professeure, COURS PAR COURS (page
+ * `periode.html`, colonne `suivi_courses.active_period`) : l'app ne dépasse
+ * jamais cette période, quelle que soit la date. 1 n'est qu'un repli si la
+ * colonne manque. `null` = suivre le calendrier seul.
+ */
+export const DEFAULT_ACTIVE_PERIOD = 1;
+
+/** période affichée pour un cours (ligne de `suivi_courses`) */
+export function coursePeriod(course, when = new Date()) {
+  const hold = course?.active_period ?? course?.activePeriod ?? DEFAULT_ACTIVE_PERIOD;
+  return currentPeriod(when, hold);
+}
+
 /** période vers laquelle l'élève travaille à cette date */
-export function currentPeriod(when = new Date()) {
+export function currentPeriod(when = new Date(), hold = DEFAULT_ACTIVE_PERIOD) {
   const d = toDate(when);
+  let n = 3;
   for (const p of PERIODS) {
-    if (d <= dayEnd(p.lastCourse)) return p.number;
+    if (d <= dayEnd(p.lastCourse)) {
+      n = p.number;
+      break;
+    }
   }
-  return 3;
+  return hold != null && n > hold ? hold : n;
 }
 
 /**
  * Période en attente de son conseil de guidance, s'il y en a une : on est après
  * le dernier cours mais avant le figeage.
  */
-export function periodAwaitingFreeze(when = new Date()) {
+export function periodAwaitingFreeze(when = new Date(), hold = DEFAULT_ACTIVE_PERIOD) {
+  // En mode manuel, la période précédente est figée au moment même où l'on
+  // passe à la suivante : il n'y a plus de « semaine tampon » à annoncer.
+  if (hold != null) return null;
   const d = toDate(when);
   for (const p of PERIODS) {
     if (d > dayEnd(p.lastCourse) && d <= dayEnd(p.freeze)) return p.number;

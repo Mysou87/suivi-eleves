@@ -6,7 +6,7 @@
 
 import { norm, studentKey } from './parser.js';
 import { guessCourseLabel, normalizeSheetName } from './config.js';
-import { currentPeriod, countersAt, evaluate, socleForPeriod } from './rules.js';
+import { coursePeriod, countersAt, evaluate, socleForPeriod } from './rules.js';
 
 /** libellés canoniques d'un onglet : celui des seuils fait référence */
 export function labelsFor(sheetName) {
@@ -67,10 +67,12 @@ export async function syncWorkbook(db, parsed, options = {}) {
     .upsert(courseRows, { onConflict: 'sheet_name' });
   fail('suivi_courses', courseError);
 
-  const { data: courses } = await db.from('suivi_courses').select('id, sheet_name, course_label');
+  // `*` : `active_period` peut ne pas encore exister (sql/periode.sql pas lancé).
+  const { data: courses } = await db.from('suivi_courses').select('*');
   const courseIdBySheet = new Map(
     (courses || []).map((c) => [normalizeSheetName(c.sheet_name), c.id])
   );
+  const periodByCourseId = new Map((courses || []).map((c) => [c.id, coursePeriod(c, when)]));
   report.steps.courses = courseRows.length;
 
   // Correspondance des libellés, pour que l'admin puisse la relire et l'ajuster.
@@ -217,7 +219,6 @@ export async function syncWorkbook(db, parsed, options = {}) {
   report.steps.studentsUpdated = updates.length;
 
   // ------------------------------------------- 6. inscriptions et compteurs
-  const period = currentPeriod(when);
   const thresholdByLabel = new Map(parsed.thresholds.map((c) => [norm(c.label), c]));
 
   // État précédent, pour n'ajouter un relevé d'historique que si quelque chose
@@ -239,6 +240,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
     const courseId = courseIdBySheet.get(normalizeSheetName(g.sheetName));
     const canonical = labelsFor(g.sheetName).thresholds;
     const course = thresholdByLabel.get(norm(canonical));
+    const period = periodByCourseId.get(courseId) ?? coursePeriod(null, when);
 
     g.students.forEach((s) => {
       const studentId = idByKey.get(s.key);
@@ -364,7 +366,7 @@ export async function syncWorkbook(db, parsed, options = {}) {
   report.steps.counters = counterRows.length;
   report.steps.historyAdded = historyRows.length;
   report.steps.unchanged = unchanged;
-  report.steps.period = period;
+  report.steps.period = [...new Set(periodByCourseId.values())].sort().join('/');
 
   await db
     .from('suivi_imports')

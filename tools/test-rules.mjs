@@ -81,14 +81,16 @@ const rule = (t) => console.log(`\n${t}\n${'-'.repeat(t.length)}`);
 // --------------------------------------------------------------- calendrier
 
 rule('Calendrier');
-check('rentrée → période 1', currentPeriod('2026-09-07'), 1);
-check('13/11 (dernier cours P1) → période 1', currentPeriod('2026-11-13'), 1);
-check('14/11 → période 2', currentPeriod('2026-11-14'), 2);
-check('19/2 → période 2', currentPeriod('2027-02-19'), 2);
-check('20/2 → période 3', currentPeriod('2027-02-20'), 3);
-check('17/11 : P1 en attente de conseil', periodAwaitingFreeze('2026-11-17'), 1);
-check('21/11 : plus rien en attente', periodAwaitingFreeze('2026-11-21'), null);
-check('10/3 : P2 en attente de conseil', periodAwaitingFreeze('2027-03-10'), 2);
+check('rentrée → période 1', currentPeriod('2026-09-07', null), 1);
+check('13/11 (dernier cours P1) → période 1', currentPeriod('2026-11-13', null), 1);
+check('14/11 → période 2', currentPeriod('2026-11-14', null), 2);
+check('19/2 → période 2', currentPeriod('2027-02-19', null), 2);
+check('20/2 → période 3', currentPeriod('2027-02-20', null), 3);
+check('17/11 : P1 en attente de conseil', periodAwaitingFreeze('2026-11-17', null), 1);
+check('21/11 : plus rien en attente', periodAwaitingFreeze('2026-11-21', null), null);
+check('10/3 : P2 en attente de conseil', periodAwaitingFreeze('2027-03-10', null), 2);
+check('interrupteur sur P1 : 14/11 reste en période 1', currentPeriod('2026-11-14', 1), 1);
+check('interrupteur sur P1 : pas de bannière « en attente »', periodAwaitingFreeze('2026-11-17', 1), null);
 
 // ----------------------------------------------------------------- coupures
 

@@ -1,9 +1,9 @@
-// Figeage des bulletins au conseil de guidance.
+// Figeage des bulletins, cours par cours, au moment où la professeure fait
+// passer un cours à la période suivante (page `periode.html`).
 //
 // Une fois figé, un bulletin ne bouge plus : les imports suivants n'y touchent
-// pas. Les devoirs libres et les quiz sont recalculés à la date du DERNIER
-// COURS de la période, pas à la date du conseil, pour qu'une case cochée
-// pendant la semaine tampon ne gonfle pas le bulletin qui se clôture.
+// pas. Il compte TOUT ce qui est encodé au moment du clic, sans coupure de date
+// (choix de la professeure : un travail accepté en retard compte encore).
 
 import { studentFromCounters, thresholdsFromRows } from './data.js';
 import { countersAt, evaluate, periodByNumber, socleForPeriod } from './rules.js';
@@ -12,9 +12,10 @@ import { countersAt, evaluate, periodByNumber, socleForPeriod } from './rules.js
  * Prépare les bulletins d'une période sans rien écrire : renvoie la liste des
  * lignes qui seraient créées, plus celles déjà figées.
  */
-export async function prepareFreeze(db, period) {
+export async function prepareFreeze(db, period, { courseId = null } = {}) {
   const definition = periodByNumber(period);
   if (!definition) return { error: `période ${period} inconnue` };
+  const frozenAt = new Date().toISOString();
 
   const [countersRes, coursesRes, thresholdsRes, socleRes, targetsRes, existingRes, enrollmentsRes] =
     await Promise.all([
@@ -56,6 +57,7 @@ export async function prepareFreeze(db, period) {
   (countersRes.data || []).forEach((counterRow) => {
     const course = courseById.get(counterRow.course_id);
     if (!course) return;
+    if (courseId != null && counterRow.course_id !== courseId) return;
 
     const pair = `${counterRow.student_id}|${counterRow.course_id}`;
     if (!activePairs.has(pair)) return;
@@ -69,9 +71,10 @@ export async function prepareFreeze(db, period) {
     if (!levels) return;
 
     const student = studentFromCounters(counterRow);
-    // Coupure à la date du dernier cours : les devoirs libres et les quiz sont
-    // datés, les BEX et missions ne le sont pas et sont donc prises telles quelles.
-    const counters = countersAt(student, definition.lastCourse);
+    // Pas de coupure de date : tout ce qui est encodé au moment où la prof fait
+    // passer le cours à la période suivante compte (un devoir accepté en retard
+    // d'un élève absent, par exemple).
+    const counters = countersAt(student);
     const socleCourse = { socleByPeriod: { 3: socleByLabel.get(course.course_label) || [] } };
     const assessment = evaluate(student, levels, {
       socle: socleForPeriod(socleCourse, period),
@@ -97,7 +100,7 @@ export async function prepareFreeze(db, period) {
         bexValidations: counters.bexValidations,
         pendingExam: assessment.pendingExam || null,
         socleMissing: assessment.socleMissing,
-        lastCourse: definition.lastCourse,
+        frozenAt,
       },
     });
   });

@@ -2,7 +2,7 @@
 // en ligne de commande (tools/test-data.mjs) autant qu'utilisable dans la page.
 
 import { norm, studentKey } from './parser.js';
-import { LEVELS, currentPeriod } from './rules.js';
+import { LEVELS, coursePeriod } from './rules.js';
 
 /**
  * Reconstruit un « élève » au format attendu par rules.js depuis une ligne de
@@ -99,11 +99,12 @@ export async function loadClasses(db) {
  * le socle de chaque cours, les noms des BEX, et l'objectif qu'il s'est fixé.
  */
 export async function loadDashboard(db, studentId, when = new Date()) {
-  const period = currentPeriod(when);
-
+  // `suivi_courses(*)` plutôt qu'une liste de colonnes : si la colonne
+  // `active_period` n'existe pas encore, on retombe sur la période 1 au lieu
+  // d'une erreur qui bloquerait tous les élèves.
   const { data: enrollments, error } = await db
     .from('suivi_enrollments')
-    .select('course_id, class_name, suivi_courses(id, sheet_name, course_label, year_level, group_letter)')
+    .select('course_id, class_name, suivi_courses(*)')
     .eq('student_id', studentId)
     .eq('is_active', true);
 
@@ -118,7 +119,7 @@ export async function loadDashboard(db, studentId, when = new Date()) {
     db.from('suivi_thresholds').select('*').in('course_label', labels),
     db.from('suivi_socle').select('*').in('course_label', labels),
     db.from('suivi_items').select('*').in('course_label', labels).eq('kind', 'bex'),
-    db.from('suivi_targets').select('*').eq('student_id', studentId).eq('period', period),
+    db.from('suivi_targets').select('*').eq('student_id', studentId),
     // Requêtes séparées et non bloquantes : ces colonnes peuvent ne pas encore
     // exister (migration pas encore appliquée). Sans elles, les conseils
     // retombent sur le comportement historique (non adouci) — jamais d'erreur,
@@ -128,7 +129,9 @@ export async function loadDashboard(db, studentId, when = new Date()) {
   ]);
 
   const countersByCourse = new Map((countersRes.data || []).map((c) => [c.course_id, c]));
-  const targetsByCourse = new Map((targetsRes.data || []).map((t) => [t.course_id, t.target_level]));
+  const targetsByPair = new Map(
+    (targetsRes.data || []).map((t) => [`${t.course_id}|${t.period}`, t.target_level])
+  );
   const dlWeekDatesByCourse = new Map(
     (calendarRes.data || []).map((c) => [c.id, c.dl_week_dates || []])
   );
@@ -139,6 +142,7 @@ export async function loadDashboard(db, studentId, when = new Date()) {
     .map((e) => {
       const course = e.suivi_courses;
       const label = course.course_label;
+      const period = coursePeriod(course, when);
       const counterRow = countersByCourse.get(course.id);
       const socleRow = (socleRes.data || []).find((s) => s.course_label === label);
       const bexLabels = (itemsRes.data || [])
@@ -159,7 +163,8 @@ export async function loadDashboard(db, studentId, when = new Date()) {
         ),
         socle: { socle: socleRow?.bex_numbers || [], socleByPeriod: { 3: socleRow?.bex_numbers || [] } },
         bexLabels,
-        target: targetsByCourse.get(course.id) || null,
+        period,
+        target: targetsByPair.get(`${course.id}|${period}`) || null,
         updatedAt: counterRow?.updated_at || null,
         dlWeekDates: dlWeekDatesByCourse.get(course.id) || [],
         evalDates: evalDatesByCourse.get(course.id) || [],
@@ -167,7 +172,7 @@ export async function loadDashboard(db, studentId, when = new Date()) {
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  return { period, courses };
+  return { courses };
 }
 
 /** enregistre l'objectif choisi par l'élève */
@@ -248,8 +253,6 @@ export async function loadHistory(db, studentId, courseId) {
  * compteurs, le niveau atteint et l'objectif qu'ils se sont fixé.
  */
 export async function loadAdminOverview(db, when = new Date()) {
-  const period = currentPeriod(when);
-
   const [coursesRes, countersRes, studentsRes, thresholdsRes, socleRes, targetsRes, enrollmentsRes, loginsRes] =
     await Promise.all([
       db.from('suivi_courses').select('*').order('sheet_name'),
@@ -257,7 +260,7 @@ export async function loadAdminOverview(db, when = new Date()) {
       db.from('students').select('id, first_name, last_name, class_name'),
       db.from('suivi_thresholds').select('*'),
       db.from('suivi_socle').select('*'),
-      db.from('suivi_targets').select('student_id, course_id, target_level').eq('period', period),
+      db.from('suivi_targets').select('student_id, course_id, period, target_level'),
       db.from('suivi_enrollments').select('student_id, course_id').eq('is_active', true),
       db.from('suivi_logins').select('student_id, last_seen_at'),
     ]);
@@ -267,7 +270,7 @@ export async function loadAdminOverview(db, when = new Date()) {
 
   const studentById = new Map((studentsRes.data || []).map((s) => [s.id, s]));
   const targetByPair = new Map(
-    (targetsRes.data || []).map((t) => [`${t.student_id}|${t.course_id}`, t.target_level])
+    (targetsRes.data || []).map((t) => [`${t.student_id}|${t.course_id}|${t.period}`, t.target_level])
   );
   const lastSeenByStudent = new Map(
     (loginsRes.data || []).map((l) => [l.student_id, l.last_seen_at])
@@ -283,6 +286,7 @@ export async function loadAdminOverview(db, when = new Date()) {
       (t) => t.course_label === course.course_label
     );
     const socleRow = (socleRes.data || []).find((s) => s.course_label === course.course_label);
+    const period = coursePeriod(course, when);
 
     const rows = (countersRes.data || [])
       .filter((c) => c.course_id === course.id && activePairs.has(`${c.student_id}|${c.course_id}`))
@@ -290,7 +294,7 @@ export async function loadAdminOverview(db, when = new Date()) {
         student: studentById.get(counterRow.student_id) || null,
         counterRow,
         student_model: studentFromCounters(counterRow),
-        target: targetByPair.get(`${counterRow.student_id}|${course.id}`) || null,
+        target: targetByPair.get(`${counterRow.student_id}|${course.id}|${period}`) || null,
         lastSeen: lastSeenByStudent.get(counterRow.student_id) || null,
       }))
       .filter((r) => r.student)
@@ -298,13 +302,14 @@ export async function loadAdminOverview(db, when = new Date()) {
 
     return {
       ...course,
+      period,
       thresholds: thresholdsFromRows(thresholdRows),
       socle: { socleByPeriod: { 3: socleRow?.bex_numbers || [] } },
       rows,
     };
   });
 
-  return { period, courses };
+  return { courses };
 }
 
 /** bulletins figés, consultables par l'élève */

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Suivi — périodes</title>
+  <link rel="icon" type="image/svg+xml" href="icones/icone.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .course-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
+                  padding: .75rem 0; border-top: 1px solid rgba(127,127,127,.25); }
+    .course-row .grow { flex: 1 1 12rem; }
+    .course-row .status { flex-basis: 100%; }
+  </style>
+</head>
+<body>
+
+<main class="screen">
+  <h1>Périodes par cours</h1>
+  <p class="muted small">
+    Quand tu as fini les bulletins d'un cours, fais-le passer à la période suivante. Ses résultats
+    sont alors figés (tout ce qui est encodé à ce moment-là compte) et restent visibles pour chaque
+    élève dans « Mes bulletins ». L'app affiche ensuite les seuils de la nouvelle période pour ce
+    cours seulement.
+  </p>
+
+  <label>
+    Mot de passe
+    <input type="password" id="password" autocomplete="off">
+  </label>
+
+  <p id="error" class="error" hidden></p>
+  <div id="courses">Chargement…</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="js/periode.js"></script>
+</body>
+</html>
